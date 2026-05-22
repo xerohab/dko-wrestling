@@ -11,8 +11,12 @@ export default function ImageUploader({ onUpload, compact = false }) {
     if (!file || !file.type.startsWith("image/")) {
       return;
     }
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    onUpload(file_url);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      onUpload(file_url);
+    } catch (err) {
+      setError(err.message || "Failed to upload image");
+    }
   };
 
   const handleFiles = async (files) => {
