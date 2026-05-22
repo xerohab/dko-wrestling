@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Plus, Edit, Trash2, Eye, Search, Loader2, AlertTriangle, ChevronDown } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Search, Loader2, AlertTriangle, ChevronDown, CheckSquare, Square, Minus } from "lucide-react";
 import { format } from "date-fns";
 
 export default function ArticlesList() {
@@ -13,6 +13,8 @@ export default function ArticlesList() {
   const [deleting, setDeleting] = useState(null);
   const [deletingAll, setDeletingAll] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
+  const [selected, setSelected] = useState(new Set());
+  const [deletingSelected, setDeletingSelected] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -42,6 +44,33 @@ export default function ArticlesList() {
     setDeletingAll(false);
   };
 
+  const toggleSelect = (id) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selected.size === filtered.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(filtered.map(a => a.id)));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (!confirm(`Delete ${selected.size} selected articles? This cannot be undone.`)) return;
+    setDeletingSelected(true);
+    for (const id of selected) {
+      await base44.entities.Article.delete(id);
+    }
+    setArticles(prev => prev.filter(a => !selected.has(a.id)));
+    setSelected(new Set());
+    setDeletingSelected(false);
+  };
+
   const filtered = articles.filter(a => {
     const matchSearch = !search || a.title?.toLowerCase().includes(search.toLowerCase()) || a.category?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || a.status === statusFilter;
@@ -57,6 +86,16 @@ export default function ArticlesList() {
           <p className="text-muted-foreground font-inter text-sm mt-0.5">{articles.length} total</p>
         </div>
         <div className="flex items-center gap-2">
+          {user.role === "admin" && selected.size > 0 && (
+            <button
+              onClick={handleDeleteSelected}
+              disabled={deletingSelected}
+              className="flex items-center gap-2 px-4 py-2.5 bg-red-900/40 border border-red-700/50 text-red-400 font-oswald font-semibold text-sm tracking-wider uppercase rounded hover:bg-red-900/70 transition-colors disabled:opacity-40"
+            >
+              {deletingSelected ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              Delete {selected.size} Selected
+            </button>
+          )}
           {user.role === "admin" && articles.length > 0 && (
             <button
               onClick={handleDeleteAll}
@@ -111,6 +150,11 @@ export default function ArticlesList() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-secondary/50">
+                <th className="px-4 py-3 w-10">
+                  <button onClick={toggleSelectAll} className="text-muted-foreground hover:text-white transition-colors">
+                    {selected.size === filtered.length && filtered.length > 0 ? <CheckSquare className="w-4 h-4 text-primary" /> : selected.size > 0 ? <Minus className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                  </button>
+                </th>
                 <th className="text-left px-4 py-3 font-inter text-xs font-semibold text-muted-foreground uppercase tracking-wider">Article</th>
                 <th className="text-left px-4 py-3 font-inter text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Category</th>
                 <th className="text-left px-4 py-3 font-inter text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Status</th>
@@ -122,12 +166,15 @@ export default function ArticlesList() {
               {filtered.map(article => (
                 <>
                   <tr
-                    key={article.id}
-                    onClick={() => setExpandedId(expandedId === article.id ? null : article.id)}
-                    className="hover:bg-secondary/30 transition-colors cursor-pointer"
+                   key={article.id}
+                   onClick={() => setExpandedId(expandedId === article.id ? null : article.id)}
+                   className={`hover:bg-secondary/30 transition-colors cursor-pointer ${selected.has(article.id) ? "bg-primary/5" : ""}`}
                   >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
+                   <td className="px-4 py-3" onClick={e => { e.stopPropagation(); toggleSelect(article.id); }}>
+                     {selected.has(article.id) ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4 text-muted-foreground" />}
+                   </td>
+                   <td className="px-4 py-3">
+                     <div className="flex items-center gap-3">
                         {article.featured_image && (
                           <img src={article.featured_image} alt="" className="w-10 h-10 rounded object-cover shrink-0 hidden sm:block" />
                         )}
@@ -154,7 +201,7 @@ export default function ArticlesList() {
                   </tr>
                   {expandedId === article.id && (
                     <tr key={`${article.id}-actions`} className="bg-secondary/20 border-b border-border">
-                      <td colSpan={5} className="px-4 py-3">
+                      <td colSpan={6} className="px-4 py-3">
                         <div className="flex items-center gap-3 flex-wrap">
                           <Link
                             to={`/admin/articles/${article.id}`}
