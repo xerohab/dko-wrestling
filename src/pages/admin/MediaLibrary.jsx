@@ -16,7 +16,7 @@ export default function MediaLibrary() {
 
   const load = async () => {
     setLoading(true);
-    const imgs = await base44.entities.MediaImage.list("-created_date", 100);
+    const imgs = await base44.entities.MediaImage.list("-created_date", 1000);
     setImages(imgs);
     setLoading(false);
   };
