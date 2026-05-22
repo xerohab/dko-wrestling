@@ -24,7 +24,7 @@ export default function ImageUploader({ onUpload, compact = false }) {
     setError(null);
     for (const file of files) {
       await uploadSingleFile(file);
-      await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay between uploads
+      await new Promise(resolve => setTimeout(resolve, 1500)); // 1500ms delay between uploads
     }
     setUploading(false);
   };
