@@ -7,28 +7,36 @@ export default function ImageUploader({ onUpload, compact = false }) {
   const [error, setError] = useState(null);
   const inputRef = useRef();
 
-  const handleFile = async (file) => {
+  const uploadSingleFile = async (file) => {
     if (!file || !file.type.startsWith("image/")) {
-      setError("Please select an image file.");
+      return;
+    }
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    onUpload(file_url);
+  };
+
+  const handleFiles = async (files) => {
+    if (!files || files.length === 0) {
+      setError("Please select image files.");
       return;
     }
     setUploading(true);
     setError(null);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    for (const file of files) {
+      await uploadSingleFile(file);
+    }
     setUploading(false);
-    onUpload(file_url);
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
+    handleFiles(Array.from(e.dataTransfer.files));
   };
 
   if (compact) {
     return (
       <div>
-        <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={e => handleFile(e.target.files[0])} />
+        <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => handleFiles(Array.from(e.target.files))} />
         <button
           type="button"
           onClick={() => inputRef.current.click()}
@@ -36,7 +44,7 @@ export default function ImageUploader({ onUpload, compact = false }) {
           className="flex items-center gap-2 px-4 py-2 bg-secondary border border-border rounded text-sm font-inter text-foreground hover:border-primary transition-colors disabled:opacity-50"
         >
           {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-          {uploading ? "Uploading..." : "Upload Image"}
+          {uploading ? "Uploading..." : "Upload Images"}
         </button>
         {error && <p className="text-destructive text-xs mt-1">{error}</p>}
       </div>
@@ -45,7 +53,7 @@ export default function ImageUploader({ onUpload, compact = false }) {
 
   return (
     <div>
-      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={e => handleFile(e.target.files[0])} />
+      <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => handleFiles(Array.from(e.target.files))} />
       <div
         onDrop={handleDrop}
         onDragOver={e => e.preventDefault()}
@@ -60,7 +68,7 @@ export default function ImageUploader({ onUpload, compact = false }) {
         ) : (
           <div className="flex flex-col items-center gap-2">
             <Upload className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors" />
-            <p className="text-foreground font-inter text-sm font-medium">Drop image here or click to upload</p>
+            <p className="text-foreground font-inter text-sm font-medium">Drop images here or click to upload</p>
             <p className="text-muted-foreground font-inter text-xs">PNG, JPG, WebP supported</p>
           </div>
         )}
