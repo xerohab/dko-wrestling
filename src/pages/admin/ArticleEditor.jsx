@@ -159,40 +159,40 @@ export default function ArticleEditor() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex flex-wrap items-center gap-2 mb-6">
         <button onClick={() => navigate("/admin/articles")} className="text-muted-foreground hover:text-white transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="font-oswald font-bold text-white text-2xl uppercase">
+        <h1 className="font-oswald font-bold text-white text-xl uppercase flex-1 min-w-0 truncate">
           {isNew ? "New Article" : "Edit Article"}
         </h1>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {!isNew && (
             <button
               onClick={handleUpdate}
               disabled={updating || !form.title}
-              className={`flex items-center gap-2 px-4 py-2 border rounded font-inter text-sm transition-colors disabled:opacity-40 ${
+              className={`flex items-center gap-1.5 px-3 py-2 border rounded font-inter text-sm transition-colors disabled:opacity-40 ${
                 updateSuccess
                   ? "bg-green-500/10 border-green-500/40 text-green-400"
                   : "bg-secondary border-border text-foreground hover:border-accent hover:text-accent"
               }`}
             >
               {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : updateSuccess ? <CheckCircle2 className="w-4 h-4" /> : <RefreshCw className="w-4 h-4" />}
-              {updateSuccess ? "Updated!" : "Update"}
+              <span className="hidden sm:inline">{updateSuccess ? "Updated!" : "Update"}</span>
             </button>
           )}
           <button
             onClick={() => handleSave(false)}
             disabled={saving || !form.title}
-            className="flex items-center gap-2 px-4 py-2 bg-secondary border border-border rounded text-foreground font-inter text-sm hover:border-primary transition-colors disabled:opacity-40"
+            className="flex items-center gap-1.5 px-3 py-2 bg-secondary border border-border rounded text-foreground font-inter text-sm hover:border-primary transition-colors disabled:opacity-40"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save Draft
+            <span className="hidden sm:inline">Save Draft</span>
           </button>
           <button
             onClick={() => handleSave(true)}
             disabled={saving || !form.title || form.categories.length === 0 || !form.author_name}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-white font-oswald font-semibold tracking-wider uppercase text-sm rounded hover:bg-red-700 transition-colors disabled:opacity-40"
+            className="flex items-center gap-1.5 px-3 py-2 bg-primary text-white font-oswald font-semibold tracking-wider uppercase text-sm rounded hover:bg-red-700 transition-colors disabled:opacity-40"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             Publish

@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import {
   Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight,
   AlignJustify, List, ListOrdered, Link, Image as ImageIcon, Youtube,
-  Type, ChevronDown, Palette, Minus, Quote, Undo, Redo, Loader2
+  Type, ChevronDown, Palette, Minus, Quote, Undo, Redo, Loader2, RemoveFormatting
 } from "lucide-react";
 import ImagePickerModal from "@/components/media/ImagePickerModal";
 
@@ -180,6 +180,22 @@ export default function RichEditor({ value, onChange, placeholder = "Write your 
       sel.addRange(range);
       savedRangeRef.current = range.cloneRange();
     }
+  }, []);
+
+  // ── Clean paste — strip all formatting from pasted content ──
+  const handlePaste = useCallback((e) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData("text/plain");
+    if (!text) return;
+    // Convert newlines to paragraphs
+    const html = text
+      .split(/\n\n+/)
+      .map(para => para.trim())
+      .filter(Boolean)
+      .map(para => `<p>${para.replace(/\n/g, "<br>")}</p>`)
+      .join("");
+    document.execCommand("insertHTML", false, html || text);
+    notifyChange();
   }, []);
 
   const exec = useCallback((cmd, val = null) => {
@@ -417,6 +433,13 @@ export default function RichEditor({ value, onChange, placeholder = "Write your 
         <ToolbarBtn onClick={handleOpenYouTube} title="Embed YouTube Video">
           <Youtube className="w-4 h-4" />
         </ToolbarBtn>
+
+        <Separator />
+
+        {/* Clear formatting */}
+        <ToolbarBtn onClick={() => exec("removeFormat")} title="Clear Formatting (remove fonts, colours, sizes)">
+          <RemoveFormatting className="w-4 h-4" />
+        </ToolbarBtn>
       </div>
 
       {/* ── Editable Area ── */}
@@ -425,11 +448,12 @@ export default function RichEditor({ value, onChange, placeholder = "Write your 
         contentEditable
         suppressContentEditableWarning
         onInput={notifyChange}
+        onPaste={handlePaste}
         onMouseUp={saveSelection}
         onKeyUp={saveSelection}
         onFocus={saveSelection}
         data-placeholder={placeholder}
-        className="min-h-[360px] px-5 py-4 text-white font-inter text-base focus:outline-none
+        className="min-h-[240px] sm:min-h-[360px] px-4 sm:px-5 py-4 text-white font-inter text-base focus:outline-none
           [&_h1]:font-oswald [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:text-white [&_h1]:uppercase [&_h1]:my-3
           [&_h2]:font-oswald [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-white [&_h2]:uppercase [&_h2]:my-2.5
           [&_h3]:font-oswald [&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-white [&_h3]:my-2
