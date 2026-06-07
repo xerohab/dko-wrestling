@@ -93,17 +93,20 @@ export default function UserProfile() {
       await base44.auth.updateMe(updates);
     }
 
-    // If author_name changed, update all articles by this user's email
+    // If author_name changed, update all articles by this user (match by email OR by old name)
     const oldAuthorName = profile?.author_name || profile?.display_name || profile?.full_name || "";
-    if (form.author_name && form.author_name !== oldAuthorName && profile?.email) {
+    if (form.author_name && form.author_name !== oldAuthorName) {
       setUpdatingArticles(true);
-      const articles = await base44.entities.Article.filter({ author_email: profile.email });
-      let count = 0;
-      for (const article of articles) {
+      // Fetch all articles and match by email or old author name
+      const allArticles = await base44.entities.Article.list("-created_date", 500);
+      const toUpdate = allArticles.filter(a =>
+        (profile?.email && a.author_email === profile.email) ||
+        (oldAuthorName && a.author_name === oldAuthorName)
+      );
+      for (const article of toUpdate) {
         await base44.entities.Article.update(article.id, { author_name: form.author_name });
-        count++;
       }
-      setArticlesUpdated(count);
+      setArticlesUpdated(toUpdate.length);
       setUpdatingArticles(false);
     }
 
