@@ -93,7 +93,7 @@ export default function ArticleEditor() {
   const handleSave = async (publish = false) => {
     setSaving(true);
     const now = new Date().toISOString();
-    const selectedAuthor = allAuthors.find(a => a.full_name === form.author_name);
+    const selectedAuthor = allAuthors.find(a => (a.author_name || a.display_name || a.full_name) === form.author_name);
     const data = {
       ...form,
       status: publish ? "published" : "draft",
@@ -253,8 +253,8 @@ export default function ArticleEditor() {
             >
               <option value="">Select an author...</option>
               {allAuthors.map(author => (
-                <option key={author.id} value={author.full_name}>
-                  {author.full_name} ({author.role})
+                <option key={author.id} value={author.author_name || author.display_name || author.full_name}>
+                  {author.author_name || author.display_name || author.full_name} ({author.role})
                 </option>
               ))}
             </select>
