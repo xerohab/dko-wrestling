@@ -20,12 +20,15 @@ export default function UserProfile() {
 
   const [form, setForm] = useState({
     display_name: "",
+    author_name: "",
     motto: "",
     bio: "",
     twitter_handle: "",
     avatar: "",
     role: "editor",
   });
+  const [updatingArticles, setUpdatingArticles] = useState(false);
+  const [articlesUpdated, setArticlesUpdated] = useState(0);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -45,6 +48,7 @@ export default function UserProfile() {
         setProfile(target);
         setForm({
           display_name: target.display_name || target.full_name || "",
+          author_name: target.author_name || target.display_name || target.full_name || "",
           motto: target.motto || "",
           bio: target.bio || "",
           twitter_handle: target.twitter_handle || "",
@@ -72,6 +76,7 @@ export default function UserProfile() {
     setSaving(true);
     const updates = {
       display_name: form.display_name,
+      author_name: form.author_name,
       motto: form.motto,
       bio: form.bio,
       twitter_handle: form.twitter_handle,
@@ -80,14 +85,31 @@ export default function UserProfile() {
     if (currentUser?.role === "admin") {
       updates.role = form.role;
     }
+
+    // Save user profile
     if (isEditingOther) {
       await base44.entities.User.update(targetUserId, updates);
     } else {
       await base44.auth.updateMe(updates);
     }
+
+    // If author_name changed, update all articles by this user's email
+    const oldAuthorName = profile?.author_name || profile?.display_name || profile?.full_name || "";
+    if (form.author_name && form.author_name !== oldAuthorName && profile?.email) {
+      setUpdatingArticles(true);
+      const articles = await base44.entities.Article.filter({ author_email: profile.email });
+      let count = 0;
+      for (const article of articles) {
+        await base44.entities.Article.update(article.id, { author_name: form.author_name });
+        count++;
+      }
+      setArticlesUpdated(count);
+      setUpdatingArticles(false);
+    }
+
     setSaving(false);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setTimeout(() => { setSaved(false); setArticlesUpdated(0); }, 3500);
   };
 
   if (loading) return <div className="flex justify-center py-24"><Loader2 className="w-10 h-10 text-primary animate-spin" /></div>;
@@ -152,6 +174,14 @@ export default function UserProfile() {
         <div>
           <label className="block text-xs font-inter font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Display Name</label>
           <input value={form.display_name} onChange={e => set("display_name", e.target.value)} placeholder={profile?.full_name || "Your name"} className="w-full bg-secondary border border-border rounded px-3 py-2.5 text-white font-inter text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary" />
+        </div>
+
+        <div>
+          <label className="block text-xs font-inter font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+            Author Name <span className="text-accent normal-case tracking-normal font-normal">(shown on articles)</span>
+          </label>
+          <input value={form.author_name} onChange={e => set("author_name", e.target.value)} placeholder="Name shown on published articles" className="w-full bg-secondary border border-border rounded px-3 py-2.5 text-white font-inter text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary" />
+          <p className="text-muted-foreground font-inter text-xs mt-1">Changing this will update the author name on all existing articles by this user.</p>
         </div>
 
         <div>
@@ -221,16 +251,21 @@ export default function UserProfile() {
         </div>
       )}
 
-      <div className="flex items-center gap-3 pb-10">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 px-6 py-3 bg-primary text-white font-oswald font-semibold text-sm tracking-wider uppercase rounded hover:bg-red-700 transition-colors disabled:opacity-40"
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {saved ? "Saved!" : "Save Changes"}
-        </button>
-        {saved && <CheckCircle className="w-5 h-5 text-green-400" />}
+      <div className="flex flex-col gap-2 pb-10">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleSave}
+            disabled={saving || updatingArticles}
+            className="flex items-center gap-2 px-6 py-3 bg-primary text-white font-oswald font-semibold text-sm tracking-wider uppercase rounded hover:bg-red-700 transition-colors disabled:opacity-40"
+          >
+            {saving || updatingArticles ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {updatingArticles ? "Updating Articles..." : saved ? "Saved!" : "Save Changes"}
+          </button>
+          {saved && !updatingArticles && <CheckCircle className="w-5 h-5 text-green-400" />}
+        </div>
+        {articlesUpdated > 0 && (
+          <p className="text-green-400 font-inter text-xs">✓ Updated author name on {articlesUpdated} article{articlesUpdated !== 1 ? "s" : ""}.</p>
+        )}
       </div>
     </div>
   );
