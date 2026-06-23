@@ -16,7 +16,9 @@ export default function CategoryPage() {
       setLoading(true);
       const cats = await base44.entities.Category.filter({ slug });
       if (cats.length) setCategory(cats[0]);
-      const arts = await base44.entities.Article.filter({ status: "published", category: cats[0]?.name || slug }, "-published_date", 30);
+      const catName = cats[0]?.name || slug;
+      const allArts = await base44.entities.Article.filter({ status: "published" }, "-published_date", 200);
+      const arts = allArts.filter(a => a.categories?.includes(catName) || a.category === catName);
       setArticles(arts);
       setLoading(false);
     };
