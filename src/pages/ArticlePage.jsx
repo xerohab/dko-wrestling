@@ -21,6 +21,8 @@ export default function ArticlePage() {
   const [savedId, setSavedId] = useState(null);
   const [savingBookmark, setSavingBookmark] = useState(false);
   const tracked = useRef(false);
+  const sessionId = useRef(`sess_${Math.random().toString(36).slice(2)}`);
+  const presenceId = useRef(null);
 
   useEffect(() => {
     base44.auth.isAuthenticated().then(async (authed) => {
@@ -66,10 +68,37 @@ export default function ArticlePage() {
             referrer: document.referrer || "",
           }).catch(() => {});
         }
+
+        // Register presence heartbeat
+        const sid = sessionId.current;
+        const now = new Date().toISOString();
+        const existing = await base44.entities.ArticlePresence.filter({ article_id: a.id, session_id: sid });
+        if (existing.length) {
+          presenceId.current = existing[0].id;
+          base44.entities.ArticlePresence.update(presenceId.current, { last_seen: now }).catch(() => {});
+        } else {
+          const p = await base44.entities.ArticlePresence.create({ article_id: a.id, session_id: sid, last_seen: now });
+          presenceId.current = p.id;
+        }
       }
       setLoading(false);
     };
     load();
+
+    // Heartbeat every 20s
+    const interval = setInterval(() => {
+      if (presenceId.current) {
+        base44.entities.ArticlePresence.update(presenceId.current, { last_seen: new Date().toISOString() }).catch(() => {});
+      }
+    }, 20000);
+
+    // Cleanup on leave
+    return () => {
+      clearInterval(interval);
+      if (presenceId.current) {
+        base44.entities.ArticlePresence.delete(presenceId.current).catch(() => {});
+      }
+    };
   }, [slug]);
 
   useEffect(() => {

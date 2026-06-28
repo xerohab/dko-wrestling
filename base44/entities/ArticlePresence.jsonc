@@ -1,0 +1,23 @@
+{
+  "name": "ArticlePresence",
+  "type": "object",
+  "properties": {
+    "article_id": {
+      "type": "string",
+      "description": "Article being viewed"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "Unique session identifier"
+    },
+    "last_seen": {
+      "type": "string",
+      "description": "ISO timestamp of last heartbeat"
+    }
+  },
+  "required": [
+    "article_id",
+    "session_id",
+    "last_seen"
+  ]
+}

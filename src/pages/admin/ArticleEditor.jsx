@@ -3,7 +3,7 @@ import { useParams, useNavigate, useOutletContext } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import RichEditor from "@/components/editor/RichEditor";
 import ImagePickerModal from "@/components/media/ImagePickerModal";
-import { Save, Send, ArrowLeft, Image as ImageIcon, X, Loader2, Twitter, Tag, Search, Trash2, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Save, Send, ArrowLeft, Image as ImageIcon, X, Loader2, Twitter, Tag, Search, Trash2, RefreshCw, CheckCircle2, Radio } from "lucide-react";
 
 export default function ArticleEditor() {
   const { id } = useParams();
@@ -28,6 +28,22 @@ export default function ArticleEditor() {
   const [catSearch, setCatSearch] = useState("");
   const [testingTweet, setTestingTweet] = useState(false);
   const [tweetResult, setTweetResult] = useState(null);
+  const [liveViewers, setLiveViewers] = useState(0);
+
+  // Poll live viewers for existing articles
+  useEffect(() => {
+    if (isNew) return;
+    const fetchViewers = () => {
+      const cutoff = new Date(Date.now() - 45000).toISOString(); // 45s window
+      base44.entities.ArticlePresence.filter({ article_id: id }).then(records => {
+        const active = records.filter(r => r.last_seen >= cutoff);
+        setLiveViewers(active.length);
+      }).catch(() => {});
+    };
+    fetchViewers();
+    const interval = setInterval(fetchViewers, 15000);
+    return () => clearInterval(interval);
+  }, [id, isNew]);
 
   useEffect(() => {
     base44.entities.Category.list("sort_order", 200).then(setAllCategories);
@@ -347,7 +363,13 @@ export default function ArticleEditor() {
                   </button>
               </div>
             </div>
-            <p className="text-muted-foreground font-inter text-xs mt-3 flex items-center gap-1">
+            {!isNew && (
+              <div className={`mt-3 flex items-center gap-2 font-inter text-xs ${liveViewers > 0 ? "text-green-400" : "text-muted-foreground"}`}>
+                <Radio className="w-3 h-3" />
+                <span>{liveViewers > 0 ? `${liveViewers} viewer${liveViewers !== 1 ? "s" : ""} reading now` : "No one reading right now"}</span>
+              </div>
+            )}
+            <p className="text-muted-foreground font-inter text-xs mt-2 flex items-center gap-1">
               <Twitter className="w-3 h-3" /> Auto-tweets on publish
             </p>
             {!isNew && (
