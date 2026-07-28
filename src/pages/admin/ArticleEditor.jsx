@@ -106,12 +106,29 @@ export default function ArticleEditor() {
     setTimeout(() => setUpdateSuccess(false), 3000);
   };
 
+  const ensureUniqueSlug = async (baseSlug, currentId) => {
+    if (!baseSlug) return baseSlug;
+    const existing = await base44.entities.Article.filter({ slug: baseSlug });
+    if (!existing.filter(a => a.id !== currentId).length) return baseSlug;
+    const dateStr = (form.published_date ? new Date(form.published_date) : new Date()).toISOString().slice(0, 10);
+    let candidate = `${baseSlug}-${dateStr}`;
+    let i = 2;
+    while (true) {
+      const ex = await base44.entities.Article.filter({ slug: candidate });
+      if (!ex.filter(a => a.id !== currentId).length) return candidate;
+      candidate = `${baseSlug}-${dateStr}-${i}`;
+      i++;
+    }
+  };
+
   const handleSave = async (publish = false) => {
     setSaving(true);
     const now = new Date().toISOString();
     const selectedAuthor = allAuthors.find(a => (a.author_name || a.display_name || a.full_name) === form.author_name);
+    const finalSlug = await ensureUniqueSlug(form.slug, id);
     const data = {
       ...form,
+      slug: finalSlug,
       status: publish ? "published" : "draft",
       author_email: selectedAuthor?.email || user.email,
       ...(publish && !form.published_date ? { published_date: now } : {}),
