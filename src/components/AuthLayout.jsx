@@ -34,7 +34,13 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
           <p className="text-center text-sm text-muted-foreground mt-6 font-inter">{footer}</p>
         )}
 
-        <p className="text-center text-xs text-muted-foreground/70 mt-8 font-inter">
+        <div className="flex items-center justify-center gap-4 mt-6 font-inter text-xs text-muted-foreground">
+          <a href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</a>
+          <span className="text-muted-foreground/40">·</span>
+          <a href="/terms" className="hover:text-foreground transition-colors">Terms of Service</a>
+        </div>
+
+        <p className="text-center text-xs text-muted-foreground/70 mt-4 font-inter">
           © 2026 DKO Wrestling · Part of DKO LTD
         </p>
       </div>
