@@ -6,6 +6,7 @@ import ArticleCard from "@/components/articles/ArticleCard";
 import CommentsSection from "@/components/article/CommentsSection";
 import AdBanner from "@/components/ads/AdBanner";
 import AuthorBio from "@/components/articles/AuthorBio";
+import PaywallCard from "@/components/articles/PaywallCard";
 import { format } from "date-fns";
 import { Loader2, User, Calendar, Eye, MessageCircle, Bookmark, BookmarkCheck, ArrowLeft } from "lucide-react";
 
@@ -20,6 +21,9 @@ export default function ArticlePage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [savedId, setSavedId] = useState(null);
   const [savingBookmark, setSavingBookmark] = useState(false);
+  const [hasAccess, setHasAccess] = useState(false);
+  const [checkingAccess, setCheckingAccess] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
   const tracked = useRef(false);
   const sessionId = useRef(`sess_${Math.random().toString(36).slice(2)}`);
   const presenceId = useRef(null);
@@ -30,6 +34,7 @@ export default function ArticlePage() {
         const me = await base44.auth.me();
         setCurrentUser(me);
       }
+      setAuthChecked(true);
     });
   }, []);
 
@@ -108,6 +113,28 @@ export default function ArticlePage() {
         .catch(() => {});
     }
   }, [currentUser, article]);
+
+  useEffect(() => {
+    if (!article) return;
+    if (!article.is_paywalled) { setHasAccess(true); setCheckingAccess(false); return; }
+    if (!authChecked) { setCheckingAccess(true); return; }
+    setCheckingAccess(true);
+    (async () => {
+      if (!currentUser) { setHasAccess(false); setCheckingAccess(false); return; }
+      try {
+        const [subs, premiumPlans] = await Promise.all([
+          base44.entities.UserSubscription.filter({ user_email: currentUser.email, status: "active" }),
+          base44.entities.SubscriptionPlan.filter({ grants_paywall_access: true }),
+        ]);
+        const premiumIds = new Set(premiumPlans.map(p => p.id));
+        const now = new Date();
+        setHasAccess(subs.some(s => premiumIds.has(s.plan_id) && (!s.end_date || new Date(s.end_date) >= now)));
+      } catch {
+        setHasAccess(false);
+      }
+      setCheckingAccess(false);
+    })();
+  }, [article, currentUser, authChecked]);
 
   const handleBookmark = async () => {
     setSavingBookmark(true);
@@ -233,36 +260,51 @@ export default function ArticlePage() {
           </div>
         )}
 
-        {/* Body */}
-        <div
-          className="
-            max-w-none font-inter text-foreground leading-relaxed
-            [&_h1]:font-oswald [&_h1]:text-4xl [&_h1]:font-bold [&_h1]:text-white [&_h1]:uppercase [&_h1]:my-5
-            [&_h2]:font-oswald [&_h2]:text-3xl [&_h2]:font-bold [&_h2]:text-white [&_h2]:uppercase [&_h2]:my-4
-            [&_h3]:font-oswald [&_h3]:text-2xl [&_h3]:font-bold [&_h3]:text-white [&_h3]:my-3
-            [&_h4]:font-oswald [&_h4]:text-xl [&_h4]:font-bold [&_h4]:text-white [&_h4]:my-3
-            [&_p]:my-3 [&_p]:leading-relaxed
-            [&_a]:text-primary [&_a]:underline [&_a]:hover:text-red-400 [&_a]:transition-colors
-            [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-3
-            [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-3
-            [&_li]:my-1
-            [&_blockquote]:border-l-4 [&_blockquote]:border-primary [&_blockquote]:pl-5 [&_blockquote]:italic [&_blockquote]:text-muted-foreground [&_blockquote]:my-5 [&_blockquote]:bg-secondary/30 [&_blockquote]:py-2 [&_blockquote]:rounded-r
-            [&_hr]:border-border [&_hr]:my-6
-            [&_img]:rounded-xl [&_img]:max-w-full [&_img]:h-auto [&_img]:my-4 [&_img]:border [&_img]:border-border
-            [&_iframe]:w-full [&_iframe]:rounded-xl
-            [&_strong]:text-white [&_strong]:font-semibold
-          "
-          dangerouslySetInnerHTML={{ __html: article.body }}
-        />
+        {/* Body or Paywall */}
+        {article.is_paywalled && !hasAccess ? (
+          checkingAccess ? (
+            <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
+          ) : (
+            <>
+              {article.excerpt && (
+                <p className="font-inter text-foreground text-lg leading-relaxed mb-6">{article.excerpt}</p>
+              )}
+              <PaywallCard />
+            </>
+          )
+        ) : (
+          <>
+            <div
+              className="
+                max-w-none font-inter text-foreground leading-relaxed
+                [&_h1]:font-oswald [&_h1]:text-4xl [&_h1]:font-bold [&_h1]:text-white [&_h1]:uppercase [&_h1]:my-5
+                [&_h2]:font-oswald [&_h2]:text-3xl [&_h2]:font-bold [&_h2]:text-white [&_h2]:uppercase [&_h2]:my-4
+                [&_h3]:font-oswald [&_h3]:text-2xl [&_h3]:font-bold [&_h3]:text-white [&_h3]:my-3
+                [&_h4]:font-oswald [&_h4]:text-xl [&_h4]:font-bold [&_h4]:text-white [&_h4]:my-3
+                [&_p]:my-3 [&_p]:leading-relaxed
+                [&_a]:text-primary [&_a]:underline [&_a]:hover:text-red-400 [&_a]:transition-colors
+                [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-3
+                [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-3
+                [&_li]:my-1
+                [&_blockquote]:border-l-4 [&_blockquote]:border-primary [&_blockquote]:pl-5 [&_blockquote]:italic [&_blockquote]:text-muted-foreground [&_blockquote]:my-5 [&_blockquote]:bg-secondary/30 [&_blockquote]:py-2 [&_blockquote]:rounded-r
+                [&_hr]:border-border [&_hr]:my-6
+                [&_img]:rounded-xl [&_img]:max-w-full [&_img]:h-auto [&_img]:my-4 [&_img]:border [&_img]:border-border
+                [&_iframe]:w-full [&_iframe]:rounded-xl
+                [&_strong]:text-white [&_strong]:font-semibold
+              "
+              dangerouslySetInnerHTML={{ __html: article.body }}
+            />
 
-        {/* Mid Ad */}
-        <AdBanner slot="mid" className="my-8" />
+            {/* Mid Ad */}
+            <AdBanner slot="mid" className="my-8" />
+          </>
+        )}
 
-        {/* Author Bio */}
+        {/* Author Bio - always visible */}
         <AuthorBio authorEmail={article.author_email} authorName={article.author_name} />
 
-        {/* Comments */}
-        <CommentsSection article={article} />
+        {/* Comments - only when unlocked */}
+        {(!article.is_paywalled || hasAccess) && <CommentsSection article={article} />}
       </article>
 
       {/* Footer */}

@@ -3,7 +3,7 @@ import { useParams, useNavigate, useOutletContext } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import RichEditor from "@/components/editor/RichEditor";
 import ImagePickerModal from "@/components/media/ImagePickerModal";
-import { Save, Send, ArrowLeft, Image as ImageIcon, X, Loader2, Twitter, Tag, Search, Trash2, RefreshCw, CheckCircle2, Radio } from "lucide-react";
+import { Save, Send, ArrowLeft, Image as ImageIcon, X, Loader2, Twitter, Tag, Search, Trash2, RefreshCw, CheckCircle2, Radio, Lock } from "lucide-react";
 
 export default function ArticleEditor() {
   const { id } = useParams();
@@ -18,7 +18,7 @@ export default function ArticleEditor() {
     category: "", categories: [],
     featured_image: "", status: "draft",
     published_date: "", seo_title: "", seo_description: "",
-    author_name: "",
+    author_name: "", is_paywalled: false,
   });
   const [saving, setSaving] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -68,6 +68,7 @@ export default function ArticleEditor() {
             seo_title: a.seo_title || "",
             seo_description: a.seo_description || "",
             author_name: a.author_name || "",
+            is_paywalled: a.is_paywalled || false,
           });
         }
         setLoading(false);
@@ -347,6 +348,21 @@ export default function ArticleEditor() {
                   className="w-full bg-secondary border border-border rounded px-3 py-2 text-foreground font-inter text-sm focus:outline-none focus:border-primary transition-colors"
                 />
               </div>
+              <label className="flex items-center justify-between gap-3 cursor-pointer">
+                <div>
+                  <span className="block font-inter text-xs font-medium text-foreground flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-accent" /> Lock this article
+                  </span>
+                  <span className="text-muted-foreground font-inter text-[11px]">Premium members only</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, is_paywalled: !f.is_paywalled }))}
+                  className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${form.is_paywalled ? "bg-accent" : "bg-secondary border border-border"}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${form.is_paywalled ? "translate-x-5" : ""}`} />
+                </button>
+              </label>
               <div className="border-t border-border pt-3 space-y-2">
                 {!isNew && (
                   <button

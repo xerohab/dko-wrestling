@@ -65,6 +65,11 @@
       "type": "boolean",
       "default": false,
       "description": "Whether auto-tweet was sent"
+    },
+    "is_paywalled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Lock full body behind premium subscription"
     }
   },
   "required": [

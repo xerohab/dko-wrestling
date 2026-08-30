@@ -45,6 +45,11 @@
     "paypal_plan_id": {
       "type": "string",
       "description": "PayPal subscription plan ID"
+    },
+    "grants_paywall_access": {
+      "type": "boolean",
+      "default": false,
+      "description": "Subscribers to this plan can read paywalled articles"
     }
   },
   "required": [

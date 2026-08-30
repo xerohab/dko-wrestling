@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Crown, Plus, Edit2, Trash2, Check, X, Loader2, Star, Users } from "lucide-react";
+import { Crown, Plus, Edit2, Trash2, Check, X, Loader2, Star, Users, Lock } from "lucide-react";
 
 export default function SubscriptionsManager() {
   const { user } = useOutletContext();
@@ -13,7 +13,7 @@ export default function SubscriptionsManager() {
   const [editing, setEditing] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", price: "", interval: "monthly", features: "", is_active: true, highlight: false, paypal_plan_id: "" });
+  const [form, setForm] = useState({ name: "", description: "", price: "", interval: "monthly", features: "", is_active: true, highlight: false, paypal_plan_id: "", grants_paywall_access: false });
 
   useEffect(() => {
     if (user?.role !== "admin") { navigate("/admin"); return; }
@@ -42,13 +42,14 @@ export default function SubscriptionsManager() {
       is_active: plan.is_active !== false,
       highlight: plan.highlight || false,
       paypal_plan_id: plan.paypal_plan_id || "",
+      grants_paywall_access: plan.grants_paywall_access || false,
     });
     setShowForm(true);
   };
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: "", description: "", price: "", interval: "monthly", features: "", is_active: true, highlight: false, paypal_plan_id: "" });
+    setForm({ name: "", description: "", price: "", interval: "monthly", features: "", is_active: true, highlight: false, paypal_plan_id: "", grants_paywall_access: false });
     setShowForm(true);
   };
 
@@ -64,6 +65,7 @@ export default function SubscriptionsManager() {
       is_active: form.is_active,
       highlight: form.highlight,
       paypal_plan_id: form.paypal_plan_id,
+      grants_paywall_access: form.grants_paywall_access,
       sort_order: plans.length,
     };
     if (editing) {
@@ -170,7 +172,7 @@ export default function SubscriptionsManager() {
                 <input value={form.paypal_plan_id} onChange={e => setForm(f => ({ ...f, paypal_plan_id: e.target.value }))} placeholder="P-XXXXXXXXXXXXXXXXXX" className="w-full bg-secondary border border-border rounded px-3 py-2.5 text-white font-inter text-sm focus:outline-none focus:border-accent" />
                 <p className="text-muted-foreground font-inter text-xs mt-1">Create subscription plans in your PayPal dashboard and paste the plan ID here.</p>
               </div>
-              <div className="flex items-center gap-6">
+              <div className="flex flex-wrap items-center gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={form.highlight} onChange={e => setForm(f => ({ ...f, highlight: e.target.checked }))} className="rounded" />
                   <span className="text-white font-inter text-sm flex items-center gap-1"><Star className="w-3.5 h-3.5 text-accent" /> Featured plan</span>
@@ -178,6 +180,10 @@ export default function SubscriptionsManager() {
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} className="rounded" />
                   <span className="text-white font-inter text-sm">Active</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.grants_paywall_access} onChange={e => setForm(f => ({ ...f, grants_paywall_access: e.target.checked }))} className="rounded" />
+                  <span className="text-white font-inter text-sm flex items-center gap-1"><Lock className="w-3.5 h-3.5 text-accent" /> Unlocks paywall</span>
                 </label>
               </div>
             </div>
@@ -209,9 +215,14 @@ export default function SubscriptionsManager() {
                     <h3 className="font-oswald font-bold text-white text-lg uppercase">{plan.name}</h3>
                     <p className="text-muted-foreground font-inter text-xs">{plan.description}</p>
                   </div>
-                  <span className={`text-xs font-inter px-2 py-0.5 rounded ${plan.is_active ? "bg-green-500/10 text-green-400" : "bg-secondary text-muted-foreground"}`}>
-                    {plan.is_active ? "Active" : "Inactive"}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-xs font-inter px-2 py-0.5 rounded ${plan.is_active ? "bg-green-500/10 text-green-400" : "bg-secondary text-muted-foreground"}`}>
+                      {plan.is_active ? "Active" : "Inactive"}
+                    </span>
+                    {plan.grants_paywall_access && (
+                      <span className="text-xs font-inter px-2 py-0.5 rounded bg-accent/10 text-accent flex items-center gap-1"><Lock className="w-3 h-3" /> Paywall</span>
+                    )}
+                  </div>
                 </div>
                 <div className="mb-4">
                   <span className="font-oswald font-bold text-3xl text-accent">£{plan.price}</span>
