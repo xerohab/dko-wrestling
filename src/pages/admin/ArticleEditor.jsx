@@ -138,12 +138,14 @@ export default function ArticleEditor() {
       const created = await base44.entities.Article.create(data);
       if (publish) {
         base44.functions.invoke("autoTweetArticle", { articleId: created.id }).catch(() => {});
+        base44.functions.invoke("sendArticleEmailAlerts", { articleId: created.id }).catch(() => {});
       }
       navigate("/admin/articles");
     } else {
       await base44.entities.Article.update(id, data);
       if (publish && data.status === "published") {
         base44.functions.invoke("autoTweetArticle", { articleId: id }).catch(() => {});
+        base44.functions.invoke("sendArticleEmailAlerts", { articleId: id }).catch(() => {});
       }
       navigate("/admin/articles");
     }
