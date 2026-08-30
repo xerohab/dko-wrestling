@@ -15,6 +15,7 @@ export default function UsersManager() {
   const [expandedId, setExpandedId] = useState(null);
   const [subscriptions, setSubscriptions] = useState([]);
   const [grantingPro, setGrantingPro] = useState(null);
+  const [staffPlan, setStaffPlan] = useState(null);
 
   useEffect(() => {
     if (user?.role !== "admin") { navigate("/admin"); return; }
@@ -22,6 +23,10 @@ export default function UsersManager() {
       setUsers(res.data?.users || res.users || []);
     }).finally(() => setLoading(false));
     base44.entities.UserSubscription.filter({ status: "active" }).then(setSubscriptions);
+    base44.entities.SubscriptionPlan.list("sort_order", 100).then(plans => {
+      const staff = plans.find(p => /staff|lifetime/i.test(p.name || ""));
+      if (staff) setStaffPlan(staff);
+    });
   }, []);
 
   const handleInvite = async () => {
@@ -40,8 +45,8 @@ export default function UsersManager() {
     await base44.entities.UserSubscription.create({
       user_email: u.email,
       user_id: u.id,
-      plan_id: "admin_grant",
-      plan_name: "Pro (Admin Grant)",
+      plan_id: staffPlan?.id || "admin_grant",
+      plan_name: staffPlan?.name || "Pro (Admin Grant)",
       status: "active",
       start_date: new Date().toISOString(),
     });
