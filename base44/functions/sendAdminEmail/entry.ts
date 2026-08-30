@@ -43,7 +43,7 @@ ${safeMessage}
     let failed = 0;
     for (const u of recipients) {
       try {
-        await base44.asServiceRole.integrations.Core.SendEmail({ to: u.email, subject, body: html });
+        await base44.asServiceRole.integrations.Core.SendEmail({ to: u.email, subject, body: html, from_name: "DKO Wrestling" });
         sent++;
       } catch {
         failed++;

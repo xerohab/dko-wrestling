@@ -46,7 +46,7 @@ ${article.excerpt ? `<p style="font-size:16px;line-height:1.5;color:#b5b5b5;marg
     let failed = 0;
     for (const u of optedIn) {
       try {
-        await base44.asServiceRole.integrations.Core.SendEmail({ to: u.email, subject, body: html });
+        await base44.asServiceRole.integrations.Core.SendEmail({ to: u.email, subject, body: html, from_name: "DKO Wrestling" });
         sent++;
       } catch {
         failed++;
