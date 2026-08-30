@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { buildEmailTemplate, linkify } from '../../shared/emailTemplate.ts';
 
 export default async function(req) {
   try {
@@ -29,15 +30,13 @@ export default async function(req) {
     const safeMessage = message
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .split('\n')
-      .map(p => `<p style="font-size:15px;line-height:1.6;color:#d4d4d4;margin:0 0 12px;">${p || '&nbsp;'}</p>`)
+      .map(p => `<p style="font-size:15px;line-height:1.6;color:#d4d4d4;margin:0 0 14px;">${linkify(p) || '&nbsp;'}</p>`)
       .join('');
 
-    const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0a0a0a;font-family:Inter,Arial,sans-serif;color:#eaeaea;">
-<div style="max-width:600px;margin:0 auto;padding:24px;">
-<div style="text-align:center;margin-bottom:24px;"><span style="font-family:Oswald,sans-serif;font-weight:700;font-size:22px;letter-spacing:2px;color:#fff;">DKO WRESTLING</span></div>
-${safeMessage}
-<p style="margin-top:24px;font-size:12px;color:#666;">— DKO Wrestling Team</p>
-</div></body></html>`;
+    const inner = `${safeMessage}
+<p style="margin-top:28px;padding-top:16px;border-top:1px solid #2a2a2a;font-size:12px;color:#888;">— DKO Wrestling Team</p>`;
+
+    const html = buildEmailTemplate(inner, { preHeader: subject });
 
     let sent = 0;
     let failed = 0;
