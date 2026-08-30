@@ -15,7 +15,8 @@ export default function UsersManager() {
   const [expandedId, setExpandedId] = useState(null);
   const [subscriptions, setSubscriptions] = useState([]);
   const [grantingPro, setGrantingPro] = useState(null);
-  const [staffPlan, setStaffPlan] = useState(null);
+  const [allPlans, setAllPlans] = useState([]);
+  const [selectedPlan, setSelectedPlan] = useState("");
 
   useEffect(() => {
     if (user?.role !== "admin") { navigate("/admin"); return; }
@@ -23,10 +24,7 @@ export default function UsersManager() {
       setUsers(res.data?.users || res.users || []);
     }).finally(() => setLoading(false));
     base44.entities.UserSubscription.filter({ status: "active" }).then(setSubscriptions);
-    base44.entities.SubscriptionPlan.list("sort_order", 100).then(plans => {
-      const staff = plans.find(p => /staff|lifetime/i.test(p.name || ""));
-      if (staff) setStaffPlan(staff);
-    });
+    base44.entities.SubscriptionPlan.list("sort_order", 100).then(setAllPlans);
   }, []);
 
   const handleInvite = async () => {
@@ -38,21 +36,24 @@ export default function UsersManager() {
     alert(`Invitation sent to ${inviteEmail.trim()} as ${inviteRole}`);
   };
 
-  const hasProSub = (u) => subscriptions.some(s => s.user_email === u.email && s.status === "active");
+  const userSub = (u) => subscriptions.find(s => s.user_email === u.email && s.status === "active");
+  const hasProSub = (u) => !!userSub(u);
 
-  const handleGrantPro = async (u) => {
+  const handleAssignSub = async (u) => {
+    const plan = allPlans.find(p => p.id === selectedPlan);
+    if (!plan) return;
     setGrantingPro(u.id);
-    await base44.entities.UserSubscription.create({
-      user_email: u.email,
-      user_id: u.id,
-      plan_id: staffPlan?.id || "admin_grant",
-      plan_name: staffPlan?.name || "DKO Club (Admin Grant)",
-      status: "active",
-      start_date: new Date().toISOString(),
-    });
+    const data = { plan_id: plan.id, plan_name: plan.name, status: "active", start_date: new Date().toISOString() };
+    const existing = userSub(u);
+    if (existing) {
+      await base44.entities.UserSubscription.update(existing.id, data);
+    } else {
+      await base44.entities.UserSubscription.create({ user_email: u.email, user_id: u.id, ...data });
+    }
     const updated = await base44.entities.UserSubscription.filter({ status: "active" });
     setSubscriptions(updated);
     setGrantingPro(null);
+    setSelectedPlan("");
   };
 
   const handleRevokePro = async (u) => {
@@ -151,10 +152,12 @@ export default function UsersManager() {
                         <span className={`text-xs font-inter font-medium px-2 py-0.5 rounded capitalize ${roleColor(u.role)}`}>
                           {u.role || "user"}
                         </span>
-                        {hasProSub(u) && (
+                        {hasProSub(u) ? (
                           <span className="text-xs font-oswald font-semibold px-2 py-0.5 rounded bg-accent/10 text-accent flex items-center gap-1">
-                            <Crown className="w-3 h-3" /> DKO Club
+                            <Crown className="w-3 h-3" /> {userSub(u)?.plan_name || "DKO Club"}
                           </span>
+                        ) : (
+                          <span className="text-xs font-inter px-2 py-0.5 rounded bg-secondary text-muted-foreground">No subscription</span>
                         )}
                       </div>
                     </td>
@@ -180,23 +183,37 @@ export default function UsersManager() {
                           >
                             <Mail className="w-3.5 h-3.5" /> Email User
                           </a>
-                          {hasProSub(u) ? (
-                            <button
-                              onClick={e => { e.stopPropagation(); handleRevokePro(u); }}
-                              disabled={grantingPro === u.id}
-                              className="flex items-center gap-1.5 px-4 py-2 bg-secondary border border-red-500/40 text-red-400 font-oswald text-xs font-semibold tracking-wider uppercase rounded hover:border-red-500 transition-colors disabled:opacity-40"
+                          <div className="flex items-center gap-2 flex-wrap mt-2 pt-2 border-t border-border/50 w-full">
+                            <span className="text-xs font-inter text-muted-foreground uppercase tracking-wider">Subscription</span>
+                            <select
+                              value={selectedPlan}
+                              onChange={e => { e.stopPropagation(); setSelectedPlan(e.target.value); }}
+                              onClick={e => e.stopPropagation()}
+                              className="bg-secondary border border-border rounded px-2 py-1.5 text-xs text-foreground font-inter focus:outline-none focus:border-primary"
                             >
-                              {grantingPro === u.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />} Revoke DKO Club
-                            </button>
-                          ) : (
+                              <option value="">{hasProSub(u) ? "Change plan…" : "Select plan…"}</option>
+                              {allPlans.map(p => (
+                                <option key={p.id} value={p.id}>{p.name} (£{p.price})</option>
+                              ))}
+                            </select>
                             <button
-                              onClick={e => { e.stopPropagation(); handleGrantPro(u); }}
-                              disabled={grantingPro === u.id}
-                              className="flex items-center gap-1.5 px-4 py-2 bg-accent/10 border border-accent/40 text-accent font-oswald text-xs font-semibold tracking-wider uppercase rounded hover:bg-accent/20 transition-colors disabled:opacity-40"
+                              onClick={e => { e.stopPropagation(); handleAssignSub(u); }}
+                              disabled={grantingPro === u.id || !selectedPlan}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-accent/10 border border-accent/40 text-accent font-oswald text-xs font-semibold tracking-wider uppercase rounded hover:bg-accent/20 transition-colors disabled:opacity-40"
                             >
-                              {grantingPro === u.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Crown className="w-3.5 h-3.5" />} Grant DKO Club
+                              {grantingPro === u.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Crown className="w-3.5 h-3.5" />}
+                              {hasProSub(u) ? "Change" : "Assign"}
                             </button>
-                          )}
+                            {hasProSub(u) && (
+                              <button
+                                onClick={e => { e.stopPropagation(); handleRevokePro(u); }}
+                                disabled={grantingPro === u.id}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary border border-red-500/40 text-red-400 font-oswald text-xs font-semibold tracking-wider uppercase rounded hover:border-red-500 transition-colors disabled:opacity-40"
+                              >
+                                {grantingPro === u.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />} Revoke
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </td>
                     </tr>

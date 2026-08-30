@@ -30,6 +30,31 @@
     "twitter_handle": {
       "type": "string",
       "description": "Twitter/X handle without @"
+    },
+    "instagram_handle": {
+      "type": "string",
+      "description": "Instagram handle without @"
+    },
+    "location": {
+      "type": "string",
+      "description": "User location"
+    },
+    "website": {
+      "type": "string",
+      "description": "Personal website URL"
+    },
+    "favorite_wrestler": {
+      "type": "string",
+      "description": "Favourite wrestler or superstar"
+    },
+    "favorite_show": {
+      "type": "string",
+      "description": "Favourite wrestling show or promotion"
+    },
+    "notify_new_articles": {
+      "type": "boolean",
+      "default": true,
+      "description": "Email notifications for new articles"
     }
   }
 }

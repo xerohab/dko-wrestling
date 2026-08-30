@@ -81,28 +81,66 @@ function extractYouTubeId(url) {
   return m ? m[1] : null;
 }
 
-// YouTube URL input modal
-function YouTubeModal({ onConfirm, onClose }) {
+// Extract Vimeo video ID
+function extractVimeoId(url) {
+  const m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  return m ? m[1] : null;
+}
+
+// Build responsive embed HTML for a video URL + optional caption
+function buildVideoEmbed(url, caption) {
+  const fig = (inner) => `<figure style="margin:12px 0;">${inner}` +
+    (caption ? `<figcaption style="text-align:center;font-size:13px;color:#9CA3AF;margin-top:6px;font-style:italic;">${caption}</figcaption>` : "") +
+    `</figure>`;
+  const yt = extractYouTubeId(url);
+  if (yt) {
+    return fig(`<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;"><iframe src="https://www.youtube.com/embed/${yt}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allowfullscreen loading="lazy"></iframe></div>`);
+  }
+  const vm = extractVimeoId(url);
+  if (vm) {
+    return fig(`<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;"><iframe src="https://player.vimeo.com/video/${vm}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allowfullscreen loading="lazy"></iframe></div>`);
+  }
+  if (/\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url)) {
+    return fig(`<video controls preload="metadata" style="width:100%;border-radius:8px;display:block;"><source src="${url}"></video>`);
+  }
+  return null;
+}
+
+// Video URL input modal (YouTube, Vimeo, or direct video file)
+function VideoModal({ onConfirm, onClose }) {
   const [url, setUrl] = useState("");
+  const [caption, setCaption] = useState("");
+  const valid = (() => {
+    if (!url.trim()) return false;
+    return extractYouTubeId(url) || extractVimeoId(url) || /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(url);
+  })();
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70" onMouseDown={e => e.stopPropagation()}>
       <div className="bg-card border border-border rounded-xl p-6 w-full max-w-md shadow-2xl">
-        <h3 className="font-oswald font-bold text-white text-lg uppercase mb-4 flex items-center gap-2">
-          <Youtube className="w-5 h-5 text-red-500" /> Embed YouTube Video
+        <h3 className="font-oswald font-bold text-white text-lg uppercase mb-1 flex items-center gap-2">
+          <Youtube className="w-5 h-5 text-red-500" /> Embed Video
         </h3>
+        <p className="text-muted-foreground font-inter text-xs mb-4">YouTube, Vimeo, or a direct video file link (MP4/WebM)</p>
         <input
           autoFocus
           value={url}
           onChange={e => setUrl(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter") onConfirm(url); if (e.key === "Escape") onClose(); }}
-          placeholder="https://www.youtube.com/watch?v=..."
+          onKeyDown={e => { if (e.key === "Enter" && valid) onConfirm(url, caption); if (e.key === "Escape") onClose(); }}
+          placeholder="https://youtube.com/watch?v=… or https://vimeo.com/…"
+          className="w-full bg-secondary border border-border rounded px-4 py-2.5 text-white font-inter text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary mb-3"
+        />
+        <input
+          value={caption}
+          onChange={e => setCaption(e.target.value)}
+          onKeyDown={e => { if (e.key === "Escape") onClose(); }}
+          placeholder="Optional caption…"
           className="w-full bg-secondary border border-border rounded px-4 py-2.5 text-white font-inter text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary mb-4"
         />
         <div className="flex gap-2 justify-end">
           <button onClick={onClose} className="px-4 py-2 bg-secondary border border-border rounded text-sm text-muted-foreground hover:text-white font-inter transition-colors">Cancel</button>
           <button
-            onClick={() => onConfirm(url)}
-            disabled={!url.trim()}
+            onClick={() => onConfirm(url, caption)}
+            disabled={!valid}
             className="px-4 py-2 bg-primary text-white font-oswald font-bold text-sm uppercase rounded hover:bg-red-700 transition-colors disabled:opacity-40"
           >
             Embed
@@ -119,7 +157,7 @@ export default function RichEditor({ value, onChange, placeholder = "Write your 
   const editorRef = useRef(null);
   const isInitialized = useRef(false);
   const [showImagePicker, setShowImagePicker] = useState(false);
-  const [showYouTubeModal, setShowYouTubeModal] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
   const [uploading, setUploading] = useState(false);
   // Store range as serializable bookmark instead of a live Range object
   const savedRangeRef = useRef(null);
@@ -243,24 +281,20 @@ export default function RichEditor({ value, onChange, placeholder = "Write your 
     }, 50);
   };
 
-  // ── YouTube ──
-  const handleOpenYouTube = useCallback(() => {
+  // ── Video (YouTube / Vimeo / direct file) ──
+  const handleOpenVideo = useCallback(() => {
     saveSelection();
     ensureSelection();
-    setShowYouTubeModal(true);
+    setShowVideoModal(true);
   }, [saveSelection, ensureSelection]);
 
-  const handleYouTubeConfirm = useCallback((url) => {
-    setShowYouTubeModal(false);
+  const handleVideoConfirm = useCallback((url, caption) => {
+    setShowVideoModal(false);
     if (!url?.trim()) return;
-    const vid = extractYouTubeId(url);
-    if (!vid) { alert("Couldn't find a YouTube video ID in that URL."); return; }
+    const html = buildVideoEmbed(url.trim(), caption?.trim() || "");
+    if (!html) { alert("Couldn't embed that URL. Use a YouTube, Vimeo, or direct video file link."); return; }
     setTimeout(() => {
-      insertAtCursor(
-        `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;margin:12px 0;border-radius:8px;">` +
-        `<iframe src="https://www.youtube.com/embed/${vid}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allowfullscreen loading="lazy"></iframe>` +
-        `</div><p><br></p>`
-      );
+      insertAtCursor(html + "<p><br></p>");
     }, 50);
   }, [insertAtCursor]);
 
@@ -429,8 +463,8 @@ export default function RichEditor({ value, onChange, placeholder = "Write your 
           onChange={handleImageUpload}
         />
 
-        {/* YouTube */}
-        <ToolbarBtn onClick={handleOpenYouTube} title="Embed YouTube Video">
+        {/* Video */}
+        <ToolbarBtn onClick={handleOpenVideo} title="Embed Video (YouTube, Vimeo, or direct file)">
           <Youtube className="w-4 h-4" />
         </ToolbarBtn>
 
@@ -478,10 +512,10 @@ export default function RichEditor({ value, onChange, placeholder = "Write your 
           onClose={() => setShowImagePicker(false)}
         />
       )}
-      {showYouTubeModal && (
-        <YouTubeModal
-          onConfirm={handleYouTubeConfirm}
-          onClose={() => setShowYouTubeModal(false)}
+      {showVideoModal && (
+        <VideoModal
+          onConfirm={handleVideoConfirm}
+          onClose={() => setShowVideoModal(false)}
         />
       )}
     </div>

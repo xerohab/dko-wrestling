@@ -50,11 +50,23 @@ export default function Pricing() {
             <Crown className="w-3.5 h-3.5" /> Membership Plans
           </div>
           <h1 className="font-oswald font-bold text-white text-4xl md:text-5xl uppercase leading-tight mb-4">
-            Join the <span className="text-primary">DKO</span> Inner Circle
+            Join <span className="text-primary">DKO Club</span>
           </h1>
-          <p className="text-muted-foreground font-inter text-lg max-w-xl mx-auto">
+          <p className="text-muted-foreground font-inter text-lg max-w-xl mx-auto mb-6">
             Get exclusive access, ad-free experience, and support your favourite wrestling news platform.
           </p>
+          <div className="flex flex-wrap items-center justify-center gap-2 max-w-2xl mx-auto">
+            {[
+              "Behind-the-scenes videos from our shows",
+              "Extra clips & exclusive footage",
+              "Exclusive premium content",
+              "Ad-free browsing",
+            ].map(b => (
+              <span key={b} className="inline-flex items-center gap-1.5 bg-secondary/60 border border-border text-foreground font-inter text-xs px-3 py-1.5 rounded-full">
+                <Check className="w-3.5 h-3.5 text-accent" /> {b}
+              </span>
+            ))}
+          </div>
         </div>
 
         {loading ? (
@@ -123,6 +135,9 @@ export default function Pricing() {
 
         <p className="text-center text-muted-foreground font-inter text-xs mt-10">
           Secure payments powered by PayPal. Cancel anytime.
+        </p>
+        <p className="text-center text-muted-foreground/70 font-inter text-xs mt-2">
+          All DKO Club membership payments are non-refundable. Cancel anytime and you'll keep access until the end of your billing period.
         </p>
       </main>
     </div>
