@@ -25,8 +25,11 @@ export default function DkoClubPromo() {
       if (!authed) { setIsMember(false); setChecking(false); return; }
       try {
         const me = await base44.auth.me();
-        const subs = await base44.entities.UserSubscription.filter({ user_email: me.email, status: "active" });
-        setIsMember(subs.length > 0);
+        const [byEmail, byId] = await Promise.all([
+          base44.entities.UserSubscription.filter({ user_email: me.email, status: "active" }),
+          base44.entities.UserSubscription.filter({ user_id: me.id, status: "active" }),
+        ]);
+        setIsMember(byEmail.length > 0 || byId.length > 0);
       } catch {
         setIsMember(false);
       }
