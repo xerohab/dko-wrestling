@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { secrets } from 'base44:runtime';
 import { buildEmailTemplate, linkify } from '../../shared/emailTemplate.ts';
 
 export default async function(req) {
@@ -36,7 +37,8 @@ export default async function(req) {
     const inner = `${safeMessage}
 <p style="margin-top:28px;padding-top:16px;border-top:1px solid #2a2a2a;font-size:12px;color:#888;">— DKO Wrestling Team</p>`;
 
-    const html = buildEmailTemplate(inner, { preHeader: subject });
+    const siteUrl = (secrets.get("SITE_URL") || "").replace(/\/$/, "");
+    const html = buildEmailTemplate(inner, { siteUrl, preHeader: subject });
 
     let sent = 0;
     let failed = 0;
