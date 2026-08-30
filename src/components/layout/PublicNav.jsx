@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { useContentProtection } from "@/hooks/useContentProtection";
 import { Menu, X, Search, ChevronDown, LogIn, LogOut, User, Shield, Bookmark } from "lucide-react";
 
 function NavDropdown({ cat, subs, location }) {
@@ -191,6 +192,7 @@ function UserMenu({ user, onLogout }) {
 }
 
 export default function PublicNav() {
+  useContentProtection();
   const [allCats, setAllCats] = useState([]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);

@@ -87,3 +87,18 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Content protection on public pages (toggled via .content-protected on body) */
+.content-protected {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+.content-protected input,
+.content-protected textarea,
+.content-protected select,
+.content-protected [contenteditable="true"] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
+}
