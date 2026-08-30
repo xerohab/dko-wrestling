@@ -26,6 +26,7 @@ import UsersManager from './pages/admin/UsersManager';
 import SiteSettings from './pages/admin/SiteSettings';
 import UserProfile from './pages/admin/UserProfile';
 import CommentsManager from './pages/admin/CommentsManager';
+import Communications from './pages/admin/Communications';
 import SubscriptionsManager from './pages/admin/SubscriptionsManager';
 import ArticleAnalytics from './pages/admin/ArticleAnalytics';
 import AdsManager from './pages/admin/AdsManager';
@@ -74,6 +75,7 @@ const AuthenticatedApp = () => {
         <Route path="settings" element={<SiteSettings />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="comments" element={<CommentsManager />} />
+        <Route path="communications" element={<Communications />} />
         <Route path="subscriptions" element={<SubscriptionsManager />} />
         <Route path="analytics" element={<ArticleAnalytics />} />
         <Route path="ads" element={<AdsManager />} />

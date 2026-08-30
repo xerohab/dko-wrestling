@@ -3,8 +3,6 @@ import { useOutletContext, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { FileText, Image, Clock, CheckCircle, Edit3, AlertTriangle, Tag, Settings, Users } from "lucide-react";
 import ArticleCard from "@/components/articles/ArticleCard";
-import BreakingNewsPush from "@/components/admin/BreakingNewsPush";
-import AdminEmailComposer from "@/components/admin/AdminEmailComposer";
 
 function StatCard({ icon: IconComp, label, value, color = "text-primary" }) {
   const Icon = IconComp;
@@ -99,12 +97,6 @@ export default function AdminDashboard() {
             </Link>
           </>
         )}
-      </div>
-
-      {/* Comms */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-        <BreakingNewsPush />
-        <AdminEmailComposer />
       </div>
 
       {/* Recent Articles */}

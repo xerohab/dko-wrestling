@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, FileText, Image, Tag, Settings, Users, LogOut, ChevronRight, UserCircle, MessageCircle, TrendingUp, Crown, Megaphone } from "lucide-react";
+import { LayoutDashboard, FileText, Image, Tag, Settings, Users, LogOut, ChevronRight, UserCircle, MessageCircle, TrendingUp, Crown, Megaphone, Mail } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 
 const adminLinks = [
@@ -8,6 +8,7 @@ const adminLinks = [
   { to: "/admin/media", label: "Media Library", icon: Image },
   { to: "/admin/analytics", label: "Analytics", icon: TrendingUp },
   { to: "/admin/comments", label: "Comments", icon: MessageCircle },
+  { to: "/admin/communications", label: "Communications", icon: Mail },
   { to: "/admin/subscriptions", label: "Subscriptions", icon: Crown, adminOnly: true },
   { to: "/admin/ads", label: "Ads Manager", icon: Megaphone, adminOnly: true },
   { to: "/admin/categories", label: "Categories", icon: Tag, adminOnly: true },
