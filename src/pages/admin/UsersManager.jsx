@@ -46,7 +46,7 @@ export default function UsersManager() {
       user_email: u.email,
       user_id: u.id,
       plan_id: staffPlan?.id || "admin_grant",
-      plan_name: staffPlan?.name || "Pro (Admin Grant)",
+      plan_name: staffPlan?.name || "DKO Club (Admin Grant)",
       status: "active",
       start_date: new Date().toISOString(),
     });
@@ -153,7 +153,7 @@ export default function UsersManager() {
                         </span>
                         {hasProSub(u) && (
                           <span className="text-xs font-oswald font-semibold px-2 py-0.5 rounded bg-accent/10 text-accent flex items-center gap-1">
-                            <Crown className="w-3 h-3" /> Pro
+                            <Crown className="w-3 h-3" /> DKO Club
                           </span>
                         )}
                       </div>
@@ -186,7 +186,7 @@ export default function UsersManager() {
                               disabled={grantingPro === u.id}
                               className="flex items-center gap-1.5 px-4 py-2 bg-secondary border border-red-500/40 text-red-400 font-oswald text-xs font-semibold tracking-wider uppercase rounded hover:border-red-500 transition-colors disabled:opacity-40"
                             >
-                              {grantingPro === u.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />} Revoke Pro
+                              {grantingPro === u.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />} Revoke DKO Club
                             </button>
                           ) : (
                             <button
@@ -194,7 +194,7 @@ export default function UsersManager() {
                               disabled={grantingPro === u.id}
                               className="flex items-center gap-1.5 px-4 py-2 bg-accent/10 border border-accent/40 text-accent font-oswald text-xs font-semibold tracking-wider uppercase rounded hover:bg-accent/20 transition-colors disabled:opacity-40"
                             >
-                              {grantingPro === u.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Crown className="w-3.5 h-3.5" />} Grant Pro
+                              {grantingPro === u.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Crown className="w-3.5 h-3.5" />} Grant DKO Club
                             </button>
                           )}
                         </div>
