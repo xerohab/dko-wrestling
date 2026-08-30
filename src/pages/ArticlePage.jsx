@@ -7,6 +7,7 @@ import CommentsSection from "@/components/article/CommentsSection";
 import AdBanner from "@/components/ads/AdBanner";
 import AuthorBio from "@/components/articles/AuthorBio";
 import PaywallCard from "@/components/articles/PaywallCard";
+import DkoClubPromo from "@/components/articles/DkoClubPromo";
 import { format } from "date-fns";
 import { Loader2, User, Calendar, Eye, MessageCircle, Bookmark, BookmarkCheck, ArrowLeft } from "lucide-react";
 
@@ -299,6 +300,9 @@ export default function ArticlePage() {
             <AdBanner slot="mid" className="my-8" />
           </>
         )}
+
+        {/* DKO Club promo — only when article is readable and user isn't a member */}
+        {(!article.is_paywalled || hasAccess) && <DkoClubPromo />}
 
         {/* Author Bio - always visible */}
         <AuthorBio authorEmail={article.author_email} authorName={article.author_name} />
