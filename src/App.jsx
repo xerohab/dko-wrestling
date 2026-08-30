@@ -53,13 +53,15 @@ function App() {
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
 
-            {/* Everything else — login required (preserves previous firewall) */}
+            {/* Public content — viewable without login */}
+            <Route path="/" element={<Home />} />
+            <Route path="/category/:slug" element={<CategoryPage />} />
+            <Route path="/article/:slug" element={<ArticlePage />} />
+            <Route path="/search" element={<SearchPage />} />
+            <Route path="/pricing" element={<Pricing />} />
+
+            {/* Account-only — login required */}
             <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
-              <Route path="/" element={<Home />} />
-              <Route path="/category/:slug" element={<CategoryPage />} />
-              <Route path="/article/:slug" element={<ArticlePage />} />
-              <Route path="/search" element={<SearchPage />} />
-              <Route path="/pricing" element={<Pricing />} />
               <Route path="/saved" element={<SavedArticles />} />
               <Route path="/profile" element={<MyProfile />} />
 
@@ -80,9 +82,9 @@ function App() {
                 <Route path="analytics" element={<ArticleAnalytics />} />
                 <Route path="ads" element={<AdsManager />} />
               </Route>
-
-              <Route path="*" element={<PageNotFound />} />
             </Route>
+
+            <Route path="*" element={<PageNotFound />} />
           </Routes>
           <Toaster />
         </Router>
