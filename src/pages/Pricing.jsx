@@ -1,19 +1,23 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import PublicNav from "@/components/layout/PublicNav";
-import { Check, Crown, Loader2, Star } from "lucide-react";
+import { Check, Crown, Loader2, Star, RefreshCw } from "lucide-react";
 
 export default function Pricing() {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [subscription, setSubscription] = useState(null);
+  const [rates, setRates] = useState(null);
+  const [ratesDate, setRatesDate] = useState(null);
+  const [ratesLoading, setRatesLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       base44.entities.SubscriptionPlan.filter({ is_active: true }, "sort_order", 10),
     ]).then(([p]) => {
-      setPlans(p);
+      // Hide hidden plans from public pricing
+      setPlans(p.filter(pl => !pl.is_hidden));
       setLoading(false);
     });
     base44.auth.isAuthenticated().then(async authed => {
@@ -24,11 +28,44 @@ export default function Pricing() {
         if (subs.length) setSubscription(subs[0]);
       }
     });
+    fetchRates();
   }, []);
+
+  // Fetch live GBP→USD/EUR exchange rates every time the page loads
+  const fetchRates = async () => {
+    setRatesLoading(true);
+    try {
+      const res = await fetch("https://api.frankfurter.app/latest?from=GBP&to=USD,EUR");
+      const data = await res.json();
+      if (data?.rates) {
+        setRates({ USD: data.rates.USD, EUR: data.rates.EUR });
+        setRatesDate(data.date);
+      }
+    } catch {
+      // Fallback static rates if API fails
+      setRates({ USD: 1.27, EUR: 1.17 });
+      setRatesDate(null);
+    } finally {
+      setRatesLoading(false);
+    }
+  };
+
+  const fmtPrice = (gbp, currency) => {
+    if (!rates || !rates[currency]) return null;
+    const converted = gbp * rates[currency];
+    const symbol = currency === "USD" ? "$" : "€";
+    // Round to nearest sensible amount for display
+    const rounded = converted >= 10 ? Math.round(converted * 100) / 100 : Math.round(converted * 100) / 100;
+    return `${symbol}${rounded.toFixed(2)}`;
+  };
 
   const handleSubscribe = (plan) => {
     if (!user) {
       base44.auth.redirectToLogin("/pricing");
+      return;
+    }
+    if (plan.interval === "one_time") {
+      alert("This is a staff-assigned plan. Please contact us to apply it to your account.");
       return;
     }
     if (!plan.paypal_plan_id) {
@@ -37,6 +74,11 @@ export default function Pricing() {
     }
     // Redirect to PayPal
     window.open(`https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=${plan.paypal_plan_id}`, "_blank");
+  };
+
+  const intervalLabel = (interval) => {
+    if (interval === "one_time") return "one-time";
+    return `/${interval}`;
   };
 
   return (
@@ -66,6 +108,21 @@ export default function Pricing() {
                 <Check className="w-3.5 h-3.5 text-accent" /> {b}
               </span>
             ))}
+          </div>
+
+          {/* Exchange rate indicator */}
+          <div className="inline-flex items-center gap-2 mt-6 text-muted-foreground font-inter text-xs">
+            <RefreshCw className={`w-3.5 h-3.5 ${ratesLoading ? "animate-spin text-accent" : "text-accent"}`} />
+            {ratesLoading ? (
+              "Fetching live exchange rates…"
+            ) : rates ? (
+              <>
+                Live rates{ratesDate ? ` · ${new Date(ratesDate).toLocaleDateString("en-GB")}` : ""}: 
+                <span className="text-accent font-semibold">£1 = ${rates.USD?.toFixed(2)} / €{rates.EUR?.toFixed(2)}</span>
+              </>
+            ) : (
+              "Exchange rates unavailable"
+            )}
           </div>
         </div>
 
@@ -98,10 +155,23 @@ export default function Pricing() {
                   </div>
 
                   <div className="mb-6">
-                    <span className={`font-oswald font-bold text-4xl ${plan.highlight ? "text-accent" : "text-white"}`}>
-                      £{plan.price}
-                    </span>
-                    <span className="text-muted-foreground font-inter text-sm">/{plan.interval}</span>
+                    <div className="flex items-baseline gap-1">
+                      <span className={`font-oswald font-bold text-4xl ${plan.highlight ? "text-accent" : "text-white"}`}>
+                        £{plan.price}
+                      </span>
+                      <span className="text-muted-foreground font-inter text-sm">{intervalLabel(plan.interval)}</span>
+                    </div>
+                    {/* Converted currency prices */}
+                    {rates && (
+                      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground font-inter text-xs">
+                        {fmtPrice(plan.price, "USD") && (
+                          <span>{fmtPrice(plan.price, "USD")} {intervalLabel(plan.interval)}</span>
+                        )}
+                        {fmtPrice(plan.price, "EUR") && (
+                          <span className="text-muted-foreground/70">· {fmtPrice(plan.price, "EUR")} {intervalLabel(plan.interval)}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {plan.features?.length > 0 && (

@@ -1,19 +1,25 @@
 import { useState, useEffect } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Crown, Plus, Edit2, Trash2, Check, X, Loader2, Star, Users, Lock } from "lucide-react";
+import { Crown, Plus, Edit2, Trash2, Check, X, Loader2, Star, Users, Lock, EyeOff, UserPlus } from "lucide-react";
 
 export default function SubscriptionsManager() {
   const { user } = useOutletContext();
   const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [subscribers, setSubscribers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("plans");
   const [editing, setEditing] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", price: "", interval: "monthly", features: "", is_active: true, highlight: false, paypal_plan_id: "", grants_paywall_access: false });
+  const [form, setForm] = useState({ name: "", description: "", price: "", interval: "monthly", features: "", is_active: true, highlight: false, paypal_plan_id: "", grants_paywall_access: false, is_hidden: false });
+
+  // Assign plan modal state
+  const [showAssign, setShowAssign] = useState(false);
+  const [assignForm, setAssignForm] = useState({ user_id: "", plan_id: "", status: "active" });
+  const [assigning, setAssigning] = useState(false);
 
   useEffect(() => {
     if (user?.role !== "admin") { navigate("/admin"); return; }
@@ -22,12 +28,14 @@ export default function SubscriptionsManager() {
 
   const load = async () => {
     setLoading(true);
-    const [p, s] = await Promise.all([
+    const [p, s, u] = await Promise.all([
       base44.entities.SubscriptionPlan.list("sort_order", 50),
       base44.entities.UserSubscription.list("-created_date", 100),
+      base44.entities.User.list("-created_date", 200),
     ]);
     setPlans(p);
     setSubscribers(s);
+    setAllUsers(u.filter(usr => usr.email));
     setLoading(false);
   };
 
@@ -43,13 +51,14 @@ export default function SubscriptionsManager() {
       highlight: plan.highlight || false,
       paypal_plan_id: plan.paypal_plan_id || "",
       grants_paywall_access: plan.grants_paywall_access || false,
+      is_hidden: plan.is_hidden || false,
     });
     setShowForm(true);
   };
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: "", description: "", price: "", interval: "monthly", features: "", is_active: true, highlight: false, paypal_plan_id: "", grants_paywall_access: false });
+    setForm({ name: "", description: "", price: "", interval: "monthly", features: "", is_active: true, highlight: false, paypal_plan_id: "", grants_paywall_access: false, is_hidden: false });
     setShowForm(true);
   };
 
@@ -66,6 +75,7 @@ export default function SubscriptionsManager() {
       highlight: form.highlight,
       paypal_plan_id: form.paypal_plan_id,
       grants_paywall_access: form.grants_paywall_access,
+      is_hidden: form.is_hidden,
       sort_order: plans.length,
     };
     if (editing) {
@@ -85,7 +95,46 @@ export default function SubscriptionsManager() {
     setPlans(prev => prev.filter(p => p.id !== id));
   };
 
+  const openAssign = () => {
+    setAssignForm({ user_id: "", plan_id: "", status: "active" });
+    setShowAssign(true);
+  };
+
+  const handleAssign = async () => {
+    if (!assignForm.user_id || !assignForm.plan_id) return;
+    setAssigning(true);
+    const usr = allUsers.find(u => u.id === assignForm.user_id);
+    const plan = plans.find(p => p.id === assignForm.plan_id);
+    if (!usr || !plan) { setAssigning(false); return; }
+
+    // Cancel any existing active subscription for this user first
+    const existing = subscribers.filter(s => s.user_email === usr.email && s.status === "active");
+    for (const s of existing) {
+      await base44.entities.UserSubscription.update(s.id, { status: "cancelled", end_date: new Date().toISOString() });
+    }
+
+    await base44.entities.UserSubscription.create({
+      user_email: usr.email,
+      user_id: usr.id,
+      plan_id: plan.id,
+      plan_name: plan.name,
+      status: assignForm.status,
+      start_date: new Date().toISOString(),
+      end_date: plan.interval === "one_time" ? null : undefined,
+    });
+    setShowAssign(false);
+    setAssigning(false);
+    load();
+  };
+
+  const handleCancelSub = async (subId) => {
+    if (!confirm("Cancel this subscription?")) return;
+    await base44.entities.UserSubscription.update(subId, { status: "cancelled", end_date: new Date().toISOString() });
+    load();
+  };
+
   const statusColor = (s) => s === "active" ? "bg-green-500/10 text-green-400" : s === "cancelled" ? "bg-red-500/10 text-red-400" : "bg-yellow-500/10 text-yellow-400";
+  const intervalLabel = (i) => i === "one_time" ? "One-time" : i;
 
   return (
     <div>
@@ -96,11 +145,18 @@ export default function SubscriptionsManager() {
           </h1>
           <p className="text-muted-foreground font-inter text-sm mt-0.5">Manage plans and subscribers</p>
         </div>
-        {tab === "plans" && (
-          <button onClick={openNew} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white font-oswald font-semibold text-sm tracking-wider uppercase rounded hover:bg-red-700 transition-colors">
-            <Plus className="w-4 h-4" /> New Plan
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {tab === "subscribers" && (
+            <button onClick={openAssign} className="flex items-center gap-2 px-5 py-2.5 bg-accent text-black font-oswald font-semibold text-sm tracking-wider uppercase rounded hover:brightness-110 transition-colors">
+              <UserPlus className="w-4 h-4" /> Assign Plan
+            </button>
+          )}
+          {tab === "plans" && (
+            <button onClick={openNew} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white font-oswald font-semibold text-sm tracking-wider uppercase rounded hover:bg-red-700 transition-colors">
+              <Plus className="w-4 h-4" /> New Plan
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Stats */}
@@ -160,6 +216,7 @@ export default function SubscriptionsManager() {
                   <select value={form.interval} onChange={e => setForm(f => ({ ...f, interval: e.target.value }))} className="w-full bg-secondary border border-border rounded px-3 py-2.5 text-white font-inter text-sm focus:outline-none focus:border-accent">
                     <option value="monthly">Monthly</option>
                     <option value="yearly">Yearly</option>
+                    <option value="one_time">One-time (Lifetime)</option>
                   </select>
                 </div>
               </div>
@@ -170,7 +227,7 @@ export default function SubscriptionsManager() {
               <div>
                 <label className="block text-xs font-inter font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">PayPal Plan ID</label>
                 <input value={form.paypal_plan_id} onChange={e => setForm(f => ({ ...f, paypal_plan_id: e.target.value }))} placeholder="P-XXXXXXXXXXXXXXXXXX" className="w-full bg-secondary border border-border rounded px-3 py-2.5 text-white font-inter text-sm focus:outline-none focus:border-accent" />
-                <p className="text-muted-foreground font-inter text-xs mt-1">Create subscription plans in your PayPal dashboard and paste the plan ID here.</p>
+                <p className="text-muted-foreground font-inter text-xs mt-1">Leave blank for staff-assigned plans (e.g. Lifetime).</p>
               </div>
               <div className="flex flex-wrap items-center gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -185,6 +242,10 @@ export default function SubscriptionsManager() {
                   <input type="checkbox" checked={form.grants_paywall_access} onChange={e => setForm(f => ({ ...f, grants_paywall_access: e.target.checked }))} className="rounded" />
                   <span className="text-white font-inter text-sm flex items-center gap-1"><Lock className="w-3.5 h-3.5 text-accent" /> Unlocks paywall</span>
                 </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.is_hidden} onChange={e => setForm(f => ({ ...f, is_hidden: e.target.checked }))} className="rounded" />
+                  <span className="text-white font-inter text-sm flex items-center gap-1"><EyeOff className="w-3.5 h-3.5 text-accent" /> Hidden from public</span>
+                </label>
               </div>
             </div>
             <div className="flex gap-3 mt-6">
@@ -192,6 +253,54 @@ export default function SubscriptionsManager() {
               <button onClick={handleSave} disabled={saving} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white font-oswald font-semibold text-sm uppercase rounded hover:bg-red-700 transition-colors disabled:opacity-40">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 Save Plan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Plan Modal */}
+      {showAssign && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="bg-card border border-border rounded-xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-oswald font-bold text-white text-xl uppercase flex items-center gap-2"><UserPlus className="w-5 h-5 text-accent" /> Assign Plan</h2>
+              <button onClick={() => setShowAssign(false)} className="text-muted-foreground hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-inter font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">User *</label>
+                <select value={assignForm.user_id} onChange={e => setAssignForm(f => ({ ...f, user_id: e.target.value }))} className="w-full bg-secondary border border-border rounded px-3 py-2.5 text-white font-inter text-sm focus:outline-none focus:border-accent">
+                  <option value="">Select user…</option>
+                  {allUsers.map(u => (
+                    <option key={u.id} value={u.id}>{u.email} ({u.role})</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-inter font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Plan *</label>
+                <select value={assignForm.plan_id} onChange={e => setAssignForm(f => ({ ...f, plan_id: e.target.value }))} className="w-full bg-secondary border border-border rounded px-3 py-2.5 text-white font-inter text-sm focus:outline-none focus:border-accent">
+                  <option value="">Select plan…</option>
+                  {plans.map(p => (
+                    <option key={p.id} value={p.id}>{p.name} — £{p.price} ({intervalLabel(p.interval)}){p.is_hidden ? " [Hidden]" : ""}</option>
+                  ))}
+                </select>
+                <p className="text-muted-foreground font-inter text-xs mt-1">Hidden plans (e.g. Lifetime) are only assignable here by staff.</p>
+              </div>
+              <div>
+                <label className="block text-xs font-inter font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Status</label>
+                <select value={assignForm.status} onChange={e => setAssignForm(f => ({ ...f, status: e.target.value }))} className="w-full bg-secondary border border-border rounded px-3 py-2.5 text-white font-inter text-sm focus:outline-none focus:border-accent">
+                  <option value="active">Active</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setShowAssign(false)} className="flex-1 px-4 py-2.5 bg-secondary border border-border text-foreground font-inter text-sm rounded hover:border-primary transition-colors">Cancel</button>
+              <button onClick={handleAssign} disabled={assigning || !assignForm.user_id || !assignForm.plan_id} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-accent text-black font-oswald font-semibold text-sm uppercase rounded hover:brightness-110 transition-colors disabled:opacity-40">
+                {assigning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                Assign
               </button>
             </div>
           </div>
@@ -212,10 +321,16 @@ export default function SubscriptionsManager() {
                 )}
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="font-oswald font-bold text-white text-lg uppercase">{plan.name}</h3>
+                    <h3 className="font-oswald font-bold text-white text-lg uppercase flex items-center gap-2">
+                      {plan.name}
+                      {plan.is_hidden && <EyeOff className="w-4 h-4 text-muted-foreground" />}
+                    </h3>
                     <p className="text-muted-foreground font-inter text-xs">{plan.description}</p>
                   </div>
                   <div className="flex items-center gap-1.5">
+                    {plan.is_hidden && (
+                      <span className="text-xs font-inter px-2 py-0.5 rounded bg-secondary text-muted-foreground flex items-center gap-1"><EyeOff className="w-3 h-3" /> Hidden</span>
+                    )}
                     <span className={`text-xs font-inter px-2 py-0.5 rounded ${plan.is_active ? "bg-green-500/10 text-green-400" : "bg-secondary text-muted-foreground"}`}>
                       {plan.is_active ? "Active" : "Inactive"}
                     </span>
@@ -226,7 +341,7 @@ export default function SubscriptionsManager() {
                 </div>
                 <div className="mb-4">
                   <span className="font-oswald font-bold text-3xl text-accent">£{plan.price}</span>
-                  <span className="text-muted-foreground font-inter text-sm">/{plan.interval}</span>
+                  <span className="text-muted-foreground font-inter text-sm">/{intervalLabel(plan.interval)}</span>
                 </div>
                 {plan.features?.length > 0 && (
                   <ul className="space-y-1 mb-4">
@@ -255,7 +370,7 @@ export default function SubscriptionsManager() {
       ) : (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           {subscribers.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground font-inter text-sm">No subscribers yet.</div>
+            <div className="text-center py-16 text-muted-foreground font-inter text-sm">No subscribers yet. Click "Assign Plan" to add one.</div>
           ) : (
             <table className="w-full">
               <thead>
@@ -264,6 +379,7 @@ export default function SubscriptionsManager() {
                   <th className="text-left px-4 py-3 font-inter text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Plan</th>
                   <th className="text-left px-4 py-3 font-inter text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
                   <th className="text-left px-4 py-3 font-inter text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Date</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -278,6 +394,11 @@ export default function SubscriptionsManager() {
                     </td>
                     <td className="px-4 py-3 text-muted-foreground font-inter text-xs hidden md:table-cell">
                       {s.start_date ? new Date(s.start_date).toLocaleDateString() : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {s.status === "active" && (
+                        <button onClick={() => handleCancelSub(s.id)} className="text-muted-foreground hover:text-red-400 font-inter text-xs transition-colors">Cancel</button>
+                      )}
                     </td>
                   </tr>
                 ))}

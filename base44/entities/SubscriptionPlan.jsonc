@@ -18,9 +18,11 @@
       "type": "string",
       "enum": [
         "monthly",
-        "yearly"
+        "yearly",
+        "one_time"
       ],
-      "default": "monthly"
+      "default": "monthly",
+      "description": "Billing interval \u2014 one_time = lifetime / single payment"
     },
     "features": {
       "type": "array",
@@ -50,6 +52,11 @@
       "type": "boolean",
       "default": false,
       "description": "Subscribers to this plan can read paywalled articles"
+    },
+    "is_hidden": {
+      "type": "boolean",
+      "default": false,
+      "description": "Hidden from public pricing page \u2014 staff-only plan (e.g. Lifetime)"
     }
   },
   "required": [
