@@ -28,15 +28,22 @@ export default function SubscriptionsManager() {
 
   const load = async () => {
     setLoading(true);
-    const [p, s, u] = await Promise.all([
-      base44.entities.SubscriptionPlan.list("sort_order", 50),
-      base44.entities.UserSubscription.list("-created_date", 100),
-      base44.entities.User.list("-created_date", 200),
-    ]);
-    setPlans(p);
-    setSubscribers(s);
-    setAllUsers(u.filter(usr => usr.email));
-    setLoading(false);
+    try {
+      const [p, s] = await Promise.all([
+        base44.entities.SubscriptionPlan.list("sort_order", 50),
+        base44.entities.UserSubscription.list("-created_date", 100),
+      ]);
+      setPlans(p);
+      setSubscribers(s);
+      // Fetch users via backend function (User entity isn't listable directly)
+      base44.functions.invoke("manageUsers", { action: "list" }).then(res => {
+        setAllUsers((res.data?.users || res.users || []).filter(usr => usr.email));
+      }).catch(() => {});
+    } catch (err) {
+      console.error("Failed to load subscriptions:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const openEdit = (plan) => {
