@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Crown, Plus, Edit2, Trash2, Check, X, Loader2, Star, Users, Lock, EyeOff, UserPlus } from "lucide-react";
+import { Crown, Plus, Edit2, Trash2, Check, X, Loader2, Star, Users, Lock, EyeOff, UserPlus, Link2, Copy } from "lucide-react";
 
 export default function SubscriptionsManager() {
   const { user } = useOutletContext();
@@ -21,6 +21,13 @@ export default function SubscriptionsManager() {
   const [assignForm, setAssignForm] = useState({ user_id: "", plan_id: "", status: "active" });
   const [assigning, setAssigning] = useState(false);
 
+  // Invite links state
+  const [links, setLinks] = useState([]);
+  const [linkForm, setLinkForm] = useState({ label: "", plan_id: "", max_uses: "", expires_at: "" });
+  const [showLinkForm, setShowLinkForm] = useState(false);
+  const [savingLink, setSavingLink] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(null);
+
   useEffect(() => {
     if (user?.role !== "admin") { navigate("/admin"); return; }
     load();
@@ -29,12 +36,14 @@ export default function SubscriptionsManager() {
   const load = async () => {
     setLoading(true);
     try {
-      const [p, s] = await Promise.all([
+      const [p, s, l] = await Promise.all([
         base44.entities.SubscriptionPlan.list("sort_order", 50),
         base44.entities.UserSubscription.list("-created_date", 100),
+        base44.entities.SubscriptionLink.list("-created_date", 100),
       ]);
       setPlans(p);
       setSubscribers(s);
+      setLinks(l);
       // Fetch users via backend function (User entity isn't listable directly)
       base44.functions.invoke("manageUsers", { action: "list" }).then(res => {
         setAllUsers((res.data?.users || res.users || []).filter(usr => usr.email));
@@ -140,6 +149,57 @@ export default function SubscriptionsManager() {
     load();
   };
 
+  // --- Invite link handlers ---
+  const genCode = () => Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
+
+  const openLinkForm = () => {
+    setLinkForm({ label: "", plan_id: "", max_uses: "", expires_at: "" });
+    setShowLinkForm(true);
+  };
+
+  const handleSaveLink = async () => {
+    if (!linkForm.plan_id) return;
+    setSavingLink(true);
+    const plan = plans.find(p => p.id === linkForm.plan_id);
+    let code = genCode();
+    // Ensure uniqueness
+    while (links.some(l => l.code === code)) code = genCode();
+    await base44.entities.SubscriptionLink.create({
+      code,
+      label: linkForm.label || plan?.name || "Invite Link",
+      plan_id: linkForm.plan_id,
+      plan_name: plan?.name || "",
+      max_uses: linkForm.max_uses ? parseInt(linkForm.max_uses) : 0,
+      used_count: 0,
+      expires_at: linkForm.expires_at || null,
+      is_active: true,
+    });
+    setShowLinkForm(false);
+    setSavingLink(false);
+    load();
+  };
+
+  const handleToggleLink = async (link) => {
+    await base44.entities.SubscriptionLink.update(link.id, { is_active: !link.is_active });
+    load();
+  };
+
+  const handleDeleteLink = async (id) => {
+    if (!confirm("Delete this invite link?")) return;
+    await base44.entities.SubscriptionLink.delete(id);
+    setLinks(prev => prev.filter(l => l.id !== id));
+  };
+
+  const copyLinkUrl = (code) => {
+    const url = `${window.location.origin}/join/${code}`;
+    navigator.clip?.writeText(url).then(() => {
+      setCopiedCode(code);
+      setTimeout(() => setCopiedCode(null), 2000);
+    }).catch(() => {
+      prompt("Copy this link:", url);
+    });
+  };
+
   const statusColor = (s) => s === "active" ? "bg-green-500/10 text-green-400" : s === "cancelled" ? "bg-red-500/10 text-red-400" : "bg-yellow-500/10 text-yellow-400";
   const intervalLabel = (i) => i === "one_time" ? "One-time" : i;
 
@@ -161,6 +221,11 @@ export default function SubscriptionsManager() {
           {tab === "plans" && (
             <button onClick={openNew} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white font-oswald font-semibold text-sm tracking-wider uppercase rounded hover:bg-red-700 transition-colors">
               <Plus className="w-4 h-4" /> New Plan
+            </button>
+          )}
+          {tab === "links" && (
+            <button onClick={openLinkForm} className="flex items-center gap-2 px-5 py-2.5 bg-accent text-black font-oswald font-semibold text-sm tracking-wider uppercase rounded hover:brightness-110 transition-colors">
+              <Link2 className="w-4 h-4" /> Create Link
             </button>
           )}
         </div>
@@ -189,9 +254,9 @@ export default function SubscriptionsManager() {
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6">
-        {["plans", "subscribers"].map(t => (
+        {["plans", "subscribers", "links"].map(t => (
           <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 rounded font-oswald text-sm uppercase tracking-wider transition-colors ${tab === t ? "bg-primary text-white" : "bg-secondary border border-border text-muted-foreground hover:text-white"}`}>
-            {t === "plans" ? `Plans (${plans.length})` : `Subscribers (${subscribers.length})`}
+            {t === "plans" ? `Plans (${plans.length})` : t === "subscribers" ? `Subscribers (${subscribers.length})` : `Invite Links (${links.length})`}
           </button>
         ))}
       </div>
@@ -314,6 +379,51 @@ export default function SubscriptionsManager() {
         </div>
       )}
 
+      {/* Create Link Modal */}
+      {showLinkForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="bg-card border border-border rounded-xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-oswald font-bold text-white text-xl uppercase flex items-center gap-2"><Link2 className="w-5 h-5 text-accent" /> Create Invite Link</h2>
+              <button onClick={() => setShowLinkForm(false)} className="text-muted-foreground hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-inter font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Label (internal)</label>
+                <input value={linkForm.label} onChange={e => setLinkForm(f => ({ ...f, label: e.target.value }))} placeholder="e.g. Summer promo" className="w-full bg-secondary border border-border rounded px-3 py-2.5 text-white font-inter text-sm focus:outline-none focus:border-accent" />
+              </div>
+              <div>
+                <label className="block text-xs font-inter font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Plan to Grant *</label>
+                <select value={linkForm.plan_id} onChange={e => setLinkForm(f => ({ ...f, plan_id: e.target.value }))} className="w-full bg-secondary border border-border rounded px-3 py-2.5 text-white font-inter text-sm focus:outline-none focus:border-accent">
+                  <option value="">Select plan…</option>
+                  {plans.map(p => (
+                    <option key={p.id} value={p.id}>{p.name} — £{p.price} ({intervalLabel(p.interval)}){p.is_hidden ? " [Hidden]" : ""}</option>
+                  ))}
+                </select>
+                <p className="text-muted-foreground font-inter text-xs mt-1">The person using this link gets this plan for free.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-inter font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Max Uses</label>
+                  <input type="number" value={linkForm.max_uses} onChange={e => setLinkForm(f => ({ ...f, max_uses: e.target.value }))} placeholder="0 = unlimited" className="w-full bg-secondary border border-border rounded px-3 py-2.5 text-white font-inter text-sm focus:outline-none focus:border-accent" />
+                </div>
+                <div>
+                  <label className="block text-xs font-inter font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Expiry Date</label>
+                  <input type="date" value={linkForm.expires_at} onChange={e => setLinkForm(f => ({ ...f, expires_at: e.target.value }))} className="w-full bg-secondary border border-border rounded px-3 py-2.5 text-white font-inter text-sm focus:outline-none focus:border-accent" />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setShowLinkForm(false)} className="flex-1 px-4 py-2.5 bg-secondary border border-border text-foreground font-inter text-sm rounded hover:border-primary transition-colors">Cancel</button>
+              <button onClick={handleSaveLink} disabled={savingLink || !linkForm.plan_id} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-accent text-black font-oswald font-semibold text-sm uppercase rounded hover:brightness-110 transition-colors disabled:opacity-40">
+                {savingLink ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                Create Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex justify-center py-24"><Loader2 className="w-10 h-10 text-primary animate-spin" /></div>
       ) : tab === "plans" ? (
@@ -374,7 +484,7 @@ export default function SubscriptionsManager() {
             ))}
           </div>
         )
-      ) : (
+      ) : tab === "subscribers" ? (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           {subscribers.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground font-inter text-sm">No subscribers yet. Click "Assign Plan" to add one.</div>
@@ -412,8 +522,58 @@ export default function SubscriptionsManager() {
               </tbody>
             </table>
           )}
-        </div>
-      )}
-    </div>
-  );
-}
+          </div>
+          ) : (
+          /* Invite Links tab */
+          <div>
+          {links.length === 0 ? (
+           <div className="bg-card border border-border rounded-xl text-center py-16 text-muted-foreground font-inter text-sm">
+             No invite links yet. Click "Create Link" to generate a shareable URL that grants a free subscription.
+           </div>
+          ) : (
+           <div className="space-y-3">
+             {links.map(link => {
+               const isExpired = link.expires_at && new Date(link.expires_at) < new Date();
+               const isMaxed = link.max_uses > 0 && (link.used_count || 0) >= link.max_uses;
+               const usable = link.is_active && !isExpired && !isMaxed;
+               return (
+                 <div key={link.id} className="bg-card border border-border rounded-xl p-4">
+                   <div className="flex items-start justify-between gap-3 flex-wrap">
+                     <div className="min-w-0 flex-1">
+                       <div className="flex items-center gap-2 mb-1">
+                         <h3 className="font-oswald font-bold text-white text-base uppercase">{link.label || "Invite Link"}</h3>
+                         <span className={`text-xs font-inter px-2 py-0.5 rounded ${usable ? "bg-green-500/10 text-green-400" : "bg-secondary text-muted-foreground"}`}>
+                           {usable ? "Active" : isExpired ? "Expired" : isMaxed ? "Maxed out" : "Inactive"}
+                         </span>
+                       </div>
+                       <p className="text-accent font-oswald text-sm font-semibold uppercase">{link.plan_name}</p>
+                       <div className="flex items-center gap-3 mt-2 text-muted-foreground font-inter text-xs flex-wrap">
+                         <span>Uses: {link.used_count || 0}{link.max_uses > 0 ? ` / ${link.max_uses}` : " / ∞"}</span>
+                         {link.expires_at && <span>Expires: {new Date(link.expires_at).toLocaleDateString()}</span>}
+                       </div>
+                       <div className="mt-2 flex items-center gap-2 bg-secondary border border-border rounded px-3 py-2">
+                         <span className="text-muted-foreground font-mono text-xs truncate flex-1">{window.location.origin}/join/{link.code}</span>
+                         <button onClick={() => copyLinkUrl(link.code)} className="text-accent hover:brightness-125 shrink-0 flex items-center gap-1 font-inter text-xs">
+                           {copiedCode === link.code ? <><Check className="w-3.5 h-3.5" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
+                         </button>
+                       </div>
+                     </div>
+                     <div className="flex items-center gap-2 shrink-0">
+                       <button onClick={() => handleToggleLink(link)} className="px-3 py-1.5 bg-secondary border border-border text-white font-inter text-xs rounded hover:border-accent transition-colors">
+                         {link.is_active ? "Deactivate" : "Activate"}
+                       </button>
+                       <button onClick={() => handleDeleteLink(link.id)} className="p-2 text-muted-foreground hover:text-red-400 transition-colors">
+                         <Trash2 className="w-4 h-4" />
+                       </button>
+                     </div>
+                   </div>
+                 </div>
+               );
+             })}
+           </div>
+          )}
+          </div>
+          )}
+          </div>
+          );
+          }

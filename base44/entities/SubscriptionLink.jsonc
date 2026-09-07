@@ -1,0 +1,67 @@
+{
+  "name": "SubscriptionLink",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "Unique invite code used in /join/:code URL"
+    },
+    "label": {
+      "type": "string",
+      "description": "Internal label for this link (e.g. 'Summer promo')"
+    },
+    "plan_id": {
+      "type": "string",
+      "description": "Plan to grant when redeemed"
+    },
+    "plan_name": {
+      "type": "string",
+      "description": "Denormalized plan name"
+    },
+    "max_uses": {
+      "type": "number",
+      "default": 0,
+      "description": "Max redemptions (0 = unlimited)"
+    },
+    "used_count": {
+      "type": "number",
+      "default": 0,
+      "description": "How many times this link has been redeemed"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Optional expiry date (null = never expires)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "code",
+    "plan_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

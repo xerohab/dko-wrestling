@@ -20,6 +20,7 @@ import CategoryPage from './pages/CategoryPage';
 import ArticlePage from './pages/ArticlePage';
 import SearchPage from './pages/SearchPage';
 import Pricing from './pages/Pricing';
+import JoinLink from './pages/JoinLink';
 import SavedArticles from './pages/SavedArticles';
 import MyProfile from './pages/MyProfile';
 
@@ -59,6 +60,7 @@ function App() {
             <Route path="/article/:slug" element={<ArticlePage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/join/:code" element={<JoinLink />} />
 
             {/* Account-only — login required */}
             <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
