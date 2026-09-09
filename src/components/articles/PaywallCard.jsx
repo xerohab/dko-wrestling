@@ -11,7 +11,7 @@ export default function PaywallCard() {
   useEffect(() => {
     base44.entities.SubscriptionPlan
       .filter({ is_active: true, grants_paywall_access: true }, "sort_order", 10)
-      .then(setPlans)
+      .then(p => setPlans(p.filter(pl => !pl.is_hidden)))
       .catch(() => {})
       .finally(() => setLoading(false));
     base44.auth.isAuthenticated().then(async (authed) => {
