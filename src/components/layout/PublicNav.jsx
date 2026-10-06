@@ -248,7 +248,7 @@ export default function PublicNav() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 shrink-0">
-            <img src="https://media.base44.com/images/public/6a0fab0df03ef3f099fbfaf0/c427e54b3_DKOWrestling_ChampionsCollide.png" alt="DKO Wrestling" className="h-10 w-auto" />
+            <img src="https://media.base44.com/images/public/6a0fab0df03ef3f099fbfaf0/c427e54b3_DKOWrestling_ChampionsCollide.png" alt="DKO Wrestling" className="h-12 w-auto max-w-[140px] object-contain" />
             <span className="hidden sm:block font-oswald font-bold text-white text-lg tracking-wide">DKO Wrestling</span>
           </Link>
 
