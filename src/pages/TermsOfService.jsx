@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-const DKO_LOGO = "https://media.base44.com/images/public/6a0fab0df03ef3f099fbfaf0/782e6a111_dkowrestl.jpg";
+const DKO_LOGO = "https://media.base44.com/images/public/6a0fab0df03ef3f099fbfaf0/c427e54b3_DKOWrestling_ChampionsCollide.png";
 
 export default function TermsOfService() {
   return (
