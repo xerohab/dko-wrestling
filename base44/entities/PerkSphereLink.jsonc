@@ -1,0 +1,80 @@
+{
+  "name": "PerkSphereLink",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "DKO Wrestling user ID this link belongs to"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "DKO Wrestling user email (denormalized for reference)"
+    },
+    "perksphere_user_id": {
+      "type": "string",
+      "description": "Perk Sphere user ID, set only after Linux confirms the association"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "linked",
+        "unlinked"
+      ],
+      "default": "pending",
+      "description": "pending = consent started, linked = Linux confirmed, unlinked = Linux confirmed unlink"
+    },
+    "challenge_id": {
+      "type": "string",
+      "description": "Local linking challenge identifier used to correlate the consent flow"
+    },
+    "linked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When Linux confirmed the link"
+    },
+    "unlinked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When Linux confirmed the unlink"
+    }
+  },
+  "required": [
+    "user_id",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

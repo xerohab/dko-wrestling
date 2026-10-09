@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import PublicNav from "@/components/layout/PublicNav";
+import PerkSphereConnection from "@/components/perksphere/PerkSphereConnection";
 import { Camera, Save, Loader2, ArrowLeft, Twitter, User, Upload, CheckCircle, Info, Crown, X } from "lucide-react";
 
 export default function MyProfile() {
@@ -265,6 +266,9 @@ export default function MyProfile() {
             </div>
           )}
         </div>
+
+        {/* Perk Sphere */}
+        <PerkSphereConnection />
 
         <div className="flex items-center gap-3 pb-10">
           <button

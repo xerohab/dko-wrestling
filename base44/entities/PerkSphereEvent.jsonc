@@ -1,0 +1,83 @@
+{
+  "name": "PerkSphereEvent",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "DKO Wrestling user ID the event belongs to"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "DKO Wrestling user email (denormalized)"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "Stable, deduplication identifier for this event (unique per user)"
+    },
+    "event_type": {
+      "type": "string",
+      "description": "Activity event type, e.g. video_watch_progress"
+    },
+    "source": {
+      "type": "string",
+      "description": "Event source, e.g. internal or youtube (youtube always awards 0 points/0 XP)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "submitted",
+        "rejected"
+      ],
+      "default": "pending",
+      "description": "pending = recorded locally, submitted = accepted by Perk Sphere, rejected = Perk Sphere refused"
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "result": {
+      "type": "string",
+      "description": "Short result summary from Perk Sphere"
+    }
+  },
+  "required": [
+    "user_id",
+    "event_id",
+    "event_type"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "data.user_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
