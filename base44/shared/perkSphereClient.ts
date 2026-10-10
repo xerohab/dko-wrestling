@@ -40,7 +40,7 @@ export class PerkSphereSetupError extends Error {
 }
 
 export function getPartnerStatus() {
-  return "setup_required";
+  return LIVE_ENABLED ? "active" : "setup_required";
 }
 
 export function loadCredentials() {
