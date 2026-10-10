@@ -298,9 +298,9 @@ function randomNonce() {
 
   return btoa(binary)
 
-    .replace(/\\+/g, "-")
+    .replace(/\+/g, "-")
 
-    .replace(/\\//g, "_")
+    .replace(/\//g, "_")
 
     .replace(/=+$/, "");
 

@@ -61,6 +61,9 @@ export default async function(req) {
       return Response.json({ ok: false, code: "unauthorized", message: "Sign in required." }, { status: 401 });
     }
 
+    if (user.role !== 'admin') {
+      return Response.json({ ok: false, code: 'forbidden', message: 'Administrative event submission requires an administrator.' }, { status: 403 });
+    }
     let body = {};
     try { body = await req.json(); } catch (_e) {}
     const eventType = body.event_type;
@@ -83,7 +86,7 @@ export default async function(req) {
     // user before any submission. A duplicate can never produce duplicate rewards.
     const dupRes = await base44.entities.PerkSphereEvent.filter(
       { user_id: user.id, event_id: partnerEventId },
-      { limit: 1 }
+      "-created_date", 1
     );
     const dupItems = Array.isArray(dupRes) ? dupRes : (dupRes.items || []);
     if (dupItems[0]) {
@@ -93,7 +96,7 @@ export default async function(req) {
     // Must have a Linux-confirmed link.
     const linkRes = await base44.entities.PerkSphereLink.filter(
       { user_id: user.id, status: "linked" },
-      { limit: 1 }
+      "-created_date", 1
     );
     const linkItems = Array.isArray(linkRes) ? linkRes : (linkRes.items || []);
     if (!linkItems[0]) {
@@ -132,7 +135,7 @@ export default async function(req) {
       event_type: eventType,
       partner_event_id: partnerEventId,
       partner_account_reference: user.id,
-      occurred_at,
+      occurred_at: occurredAt,
       evidence: cleanEvidence,
     };
     if (typeof body.task_reference === "string" && body.task_reference) payload.task_reference = body.task_reference;

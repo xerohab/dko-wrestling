@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 
-export default function ArticleCard({ article, size = "default", categoryColor }) {
+export default function ArticleCard({ article, size = "default", categoryColor = null }) {
   const date = article.published_date ? format(new Date(article.published_date), "MMM d, yyyy") : "";
   const color = categoryColor || "#CC0000";
 

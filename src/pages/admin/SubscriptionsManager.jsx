@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Crown, Plus, Edit2, Trash2, Check, X, Loader2, Star, Users, Lock, EyeOff, UserPlus, Link2, Copy } from "lucide-react";
+import { Crown, Plus, Edit2, Trash2, Check, X, Loader2, Star, Lock, EyeOff, UserPlus, Link2, Copy } from "lucide-react";
 
 export default function SubscriptionsManager() {
-  const { user } = useOutletContext();
+  const { user } = /** @type {{user: any}} */ (useOutletContext()) || { user: null };
   const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [subscribers, setSubscribers] = useState([]);
@@ -192,7 +192,7 @@ export default function SubscriptionsManager() {
 
   const copyLinkUrl = (code) => {
     const url = `${window.location.origin}/join/${code}`;
-    navigator.clip?.writeText(url).then(() => {
+    (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject(new Error("Clipboard unavailable"))).then(() => {
       setCopiedCode(code);
       setTimeout(() => setCopiedCode(null), 2000);
     }).catch(() => {

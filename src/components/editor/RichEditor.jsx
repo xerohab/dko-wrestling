@@ -30,7 +30,7 @@ const BG_COLORS = [
   "#D8B4FE","#F0FFF4","#FFF7ED","#FEF2F2",
 ];
 
-function ToolbarBtn({ onClick, active, title, disabled, children }) {
+function ToolbarBtn({ onClick, active = false, title, disabled = false, children }) {
   return (
     <button
       type="button"

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Plus, Trash2, Edit2, Save, X, Loader2, Megaphone, Image as ImageIcon, Upload } from "lucide-react";
+import { Plus, Trash2, Edit2, Save, X, Loader2, Megaphone, Upload } from "lucide-react";
 
 const SLOTS = [
   { value: "top", label: "Top Banner" },
@@ -20,7 +20,7 @@ const AD_TYPES = [
 const EMPTY_FORM = { name: "", slot: "mid", type: "image", image_url: "", link_url: "", headline: "", body_text: "", custom_html: "", adsense_publisher_id: "", is_active: true };
 
 export default function AdsManager() {
-  const { user } = useOutletContext();
+  const { user } = /** @type {{user: any}} */ (useOutletContext()) || { user: null };
   const navigate = useNavigate();
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);

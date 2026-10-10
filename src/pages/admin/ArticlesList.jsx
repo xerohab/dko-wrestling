@@ -5,7 +5,7 @@ import { Plus, Edit, Trash2, Eye, Search, Loader2, AlertTriangle, ChevronDown, C
 import { format } from "date-fns";
 
 export default function ArticlesList() {
-  const { user } = useOutletContext();
+  const { user } = /** @type {{user: any}} */ (useOutletContext()) || { user: null };
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");

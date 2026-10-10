@@ -6,7 +6,7 @@ import { Trash2, Copy, Check, Loader2, Grid, List, AlertTriangle } from "lucide-
 import { format } from "date-fns";
 
 export default function MediaLibrary() {
-  const { user } = useOutletContext();
+  const { user } = /** @type {{user: any}} */ (useOutletContext()) || { user: null };
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(null);

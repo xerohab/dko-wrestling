@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { X, Check, Upload, Loader2 } from "lucide-react";
+import { X, Check, Loader2 } from "lucide-react";
 import ImageUploader from "./ImageUploader";
-import { format } from "date-fns";
 
 export default function ImagePickerModal({ onSelect, onClose }) {
   const [images, setImages] = useState([]);

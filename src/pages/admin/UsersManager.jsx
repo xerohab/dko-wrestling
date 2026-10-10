@@ -5,7 +5,7 @@ import { UserPlus, Edit2, Loader2, Mail, ChevronDown, Crown, X } from "lucide-re
 import { Link } from "react-router-dom";
 
 export default function UsersManager() {
-  const { user } = useOutletContext();
+  const { user } = /** @type {{user: any}} */ (useOutletContext()) || { user: null };
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,7 +30,7 @@ export default function UsersManager() {
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
     setInviting(true);
-    await base44.users.inviteUser(inviteEmail.trim(), inviteRole);
+    await base44.auth.inviteUser(inviteEmail.trim(), inviteRole);
     setInviteEmail("");
     setInviting(false);
     alert(`Invitation sent to ${inviteEmail.trim()} as ${inviteRole}`);

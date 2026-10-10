@@ -10,7 +10,6 @@ import {
   Info,
   AlertCircle,
   CheckCircle,
-  Copy,
   RefreshCw
 } from "lucide-react";
 

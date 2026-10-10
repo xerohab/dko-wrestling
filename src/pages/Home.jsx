@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import PublicNav from "@/components/layout/PublicNav";
 import ArticleCard from "@/components/articles/ArticleCard";

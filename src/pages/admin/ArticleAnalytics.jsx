@@ -2,11 +2,11 @@ import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { TrendingUp, Eye, MessageCircle, Loader2, ArrowUp, ArrowDown } from "lucide-react";
+import { TrendingUp, Eye, MessageCircle, Loader2 } from "lucide-react";
 import { format, subDays } from "date-fns";
 
 export default function ArticleAnalytics() {
-  const { user } = useOutletContext();
+  const { user } = /** @type {{user: any}} */ (useOutletContext()) || { user: null };
   const [loading, setLoading] = useState(true);
   const [views, setViews] = useState([]);
   const [comments, setComments] = useState([]);

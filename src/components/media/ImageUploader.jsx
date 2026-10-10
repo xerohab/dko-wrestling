@@ -1,11 +1,11 @@
 import { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Upload, X, Loader2 } from "lucide-react";
+import { Upload, Loader2 } from "lucide-react";
 
 export default function ImageUploader({ onUpload, compact = false }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
-  const inputRef = useRef();
+  const inputRef = useRef(/** @type {HTMLInputElement | null} */ (null));
 
   const uploadSingleFile = async (file) => {
     if (!file || !file.type.startsWith("image/")) {
@@ -44,7 +44,7 @@ export default function ImageUploader({ onUpload, compact = false }) {
         <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => handleFiles(Array.from(e.target.files))} />
         <button
           type="button"
-          onClick={() => inputRef.current.click()}
+          onClick={() => inputRef.current?.click()}
           disabled={uploading}
           className="flex items-center gap-2 px-4 py-2 bg-secondary border border-border rounded text-sm font-inter text-foreground hover:border-primary transition-colors disabled:opacity-50"
         >
@@ -62,7 +62,7 @@ export default function ImageUploader({ onUpload, compact = false }) {
       <div
         onDrop={handleDrop}
         onDragOver={e => e.preventDefault()}
-        onClick={() => inputRef.current.click()}
+        onClick={() => inputRef.current?.click()}
         className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors group"
       >
         {uploading ? (

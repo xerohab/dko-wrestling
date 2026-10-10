@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { ShieldCheck, Loader2, Play, KeyRound, Server, CheckCircle, Info } from "lucide-react";
 
 export default function PerkSphereAdmin() {
-  const { user } = useOutletContext();
+  const { user } = /** @type {{user: any}} */ (useOutletContext()) || { user: null };
   const [proof, setProof] = useState(null);
   const [probe, setProbe] = useState(null);
   const [busy, setBusy] = useState(null);

@@ -3,12 +3,12 @@ import { useParams, useNavigate, useOutletContext } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import RichEditor from "@/components/editor/RichEditor";
 import ImagePickerModal from "@/components/media/ImagePickerModal";
-import { Save, Send, ArrowLeft, Image as ImageIcon, X, Loader2, Twitter, Tag, Search, Trash2, RefreshCw, CheckCircle2, Radio, Lock } from "lucide-react";
+import { Save, Send, ArrowLeft, Image as ImageIcon, X, Loader2, Twitter, Tag, Search, RefreshCw, CheckCircle2, Radio, Lock } from "lucide-react";
 
 export default function ArticleEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useOutletContext();
+  const { user } = /** @type {{user: any}} */ (useOutletContext()) || { user: null };
   const isNew = !id || id === "new";
 
   const [allCategories, setAllCategories] = useState([]);
@@ -18,7 +18,7 @@ export default function ArticleEditor() {
     category: "", categories: [],
     featured_image: "", status: "draft",
     published_date: "", seo_title: "", seo_description: "",
-    author_name: "", is_paywalled: false,
+    author_name: "", author_email: "", is_paywalled: false,
   });
   const [saving, setSaving] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -68,6 +68,7 @@ export default function ArticleEditor() {
             seo_title: a.seo_title || "",
             seo_description: a.seo_description || "",
             author_name: a.author_name || "",
+            author_email: a.author_email || "",
             is_paywalled: a.is_paywalled || false,
           });
         }

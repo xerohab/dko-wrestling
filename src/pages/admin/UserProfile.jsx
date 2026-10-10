@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Camera, Save, Loader2, ArrowLeft, Twitter, User, Shield, Upload, CheckCircle, Info } from "lucide-react";
 
 export default function UserProfile() {
-  const { user: currentUser } = useOutletContext();
+  const { user: currentUser } = /** @type {{user: any}} */ (useOutletContext()) || { user: null };
   const { id } = useParams();
   const navigate = useNavigate();
   const uploadRef = useRef(null);
