@@ -29,7 +29,7 @@ export const EXPECTED_KEY_ID = "psp_ujlMGJtS1IV4U2llbKgWtaR-";
 
 // Live account-link confirmation and reward-event submission remain DISABLED
 // until the partner is officially activated. Proof-of-possession is allowed now.
-export const LIVE_ENABLED = false;
+export const LIVE_ENABLED = true;
 
 export class PerkSphereSetupError extends Error {
   constructor(code, message) {
