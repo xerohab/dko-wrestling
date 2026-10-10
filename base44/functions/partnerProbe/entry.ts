@@ -1,12 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import {
   loadCredentials, signRequest, PERKSPHERE_API_BASE,
-  EXPECTED_KEY_ID, PERKSPHERE_PARTNER_NAME,
+  EXPECTED_KEY_ID, PERKSPHERE_PARTNER_NAME, PERKSPHERE_PARTNER_UUID,
 } from "../../shared/perkSphereClient.ts";
 
-// Admin-only signed probe. Discovers real Linux endpoint paths/schemas by
-// sending correctly-signed (and one deliberately-invalid) requests and
-// recording the safe status/error info. Never returns secrets or signatures.
+// Admin-only signed probe. Verifies the corrected Linux contract by sending
+// correctly-signed (and one deliberately-invalid) requests and recording safe
+// status/error info. Never returns secrets or signatures.
 async function signedProbe(method, path, bodyObj, creds, opts = {}) {
   const rawBody = bodyObj == null ? "" : JSON.stringify(bodyObj);
   const headers = await signRequest(method, path, rawBody, creds);
@@ -40,29 +40,29 @@ export default async function(req) {
     if (creds.keyId !== EXPECTED_KEY_ID) return Response.json({ ok: false, code: "key_id_mismatch", message: "Key ID mismatch." }, { status: 409 });
 
     const results = {};
-    const probeUser = { partner_user_id: "probe-dko", partner_user_email: "probe@dkowrestling.co.uk" };
+    const probeRef = "probe-dko";
 
-    // Unlink candidates under /v1/partner-links/* + DELETE on root.
-    const linkCandidates = [
-      { label: "pl_unlink", method: "POST", path: "/v1/partner-links/unlink", body: probeUser },
-      { label: "pl_remove", method: "POST", path: "/v1/partner-links/remove", body: probeUser },
-      { label: "pl_revoke", method: "POST", path: "/v1/partner-links/revoke", body: probeUser },
-      { label: "pl_delete", method: "POST", path: "/v1/partner-links/delete", body: probeUser },
-      { label: "pl_root_delete", method: "DELETE", path: "/v1/partner-links", body: probeUser },
-      { label: "pl_confirm_post", method: "POST", path: "/v1/partner-links/confirm", body: probeUser },
-    ];
-    for (const c of linkCandidates) {
-      try { results[c.label] = await signedProbe(c.method, c.path, c.body, creds); }
-      catch (_e) { results[c.label] = { status: 0, errorCode: "fetch_error", message: "Request failed." }; }
-    }
+    // Link challenge endpoint — requires Perk Sphere SERVICE auth. Probed with
+    // partner HMAC to document that it is not partner-callable.
+    try { results.pl_challenges = await signedProbe("POST", "/v1/partner-links/challenges", { partner_uuid: PERKSPHERE_PARTNER_UUID, user_reference: probeRef }, creds); }
+    catch (_e) { results.pl_challenges = { status: 0, errorCode: "fetch_error", message: "Request failed." }; }
 
-    // Events endpoint — valid signature, minimal evidence payload (probe user, no reward fields).
+    // Link confirm — partner HMAC. Corrected body: { challenge, partner_account_reference }.
+    try { results.pl_confirm = await signedProbe("POST", "/v1/partner-links/confirm", { challenge: "probe-challenge", partner_account_reference: probeRef }, creds); }
+    catch (_e) { results.pl_confirm = { status: 0, errorCode: "fetch_error", message: "Request failed." }; }
+
+    // Unlink — requires Perk Sphere SERVICE auth. Probed with partner HMAC to
+    // document that it is not partner-callable.
+    try { results.pl_unlink = await signedProbe("POST", "/partners/account-link/unlink", { partner_uuid: PERKSPHERE_PARTNER_UUID, user_reference: probeRef }, creds); }
+    catch (_e) { results.pl_unlink = { status: 0, errorCode: "fetch_error", message: "Request failed." }; }
+
+    // Events endpoint — valid signature, corrected contract payload.
     const testEvent = {
-      partner_user_id: "probe-dko",
-      event_type: "STREAM_VIEW_PROGRESS",
-      event_id: `probe-evt-${Date.now()}`,
-      source: "internal",
-      evidence: { progress_seconds: 30 },
+      event_type: "stream_watch_progress",
+      partner_event_id: `probe-evt-${Date.now()}`,
+      partner_account_reference: probeRef,
+      occurred_at: new Date().toISOString(),
+      evidence: { stream_id: "probe-stream", viewer_session_id: "probe-session", eligible_seconds: 30 },
     };
     try { results.events_valid_sig = await signedProbe("POST", "/v1/partners/events", testEvent, creds); }
     catch (_e) { results.events_valid_sig = { status: 0, errorCode: "fetch_error", message: "Request failed." }; }

@@ -108,15 +108,27 @@ export default function PerkSphereAdmin() {
         )}
       </div>
 
+      {/* Event types */}
+      <div className="bg-card border border-border rounded-xl p-5 mb-4">
+        <h3 className="font-oswald font-bold text-white text-base uppercase mb-3">Authorised Event Types</h3>
+        <ul className="space-y-1.5 text-xs font-inter text-muted-foreground">
+          <li><span className="text-white font-mono">stream_watch_progress</span> — evidence: stream_id, viewer_session_id, eligible_seconds (0-86400)</li>
+          <li><span className="text-white font-mono">stream_ended</span> — evidence: stream_id, ended_at (UTC ISO-8601)</li>
+          <li><span className="text-white font-mono">registration_completed</span> — evidence: registration_reference</li>
+        </ul>
+      </div>
+
       {/* Discovered endpoints */}
       <div className="bg-card border border-border rounded-xl p-5">
-        <h3 className="font-oswald font-bold text-white text-base uppercase mb-3">Discovered Endpoints</h3>
+        <h3 className="font-oswald font-bold text-white text-base uppercase mb-3">Linux API Endpoints</h3>
         <ul className="space-y-1.5 text-xs font-inter text-muted-foreground">
-          <li><span className="text-white font-mono">POST /v1/partner-credentials/challenge</span> — credential challenge (live)</li>
-          <li><span className="text-white font-mono">POST /v1/partner-credentials/confirm</span> — credential confirm (live)</li>
-          <li><span className="text-white font-mono">POST /v1/partner-links/confirm</span> — account-link confirm (exists, activation-gated)</li>
-          <li><span className="text-white font-mono">POST /v1/partners/events</span> — activity events (exists, activation-gated)</li>
-          <li className="text-yellow-400">No server-side link-initiation or unlink endpoint found — initiation is a user-facing redirect; unlink is local until Linux exposes an endpoint.</li>
+          <li><span className="text-white font-mono">POST /v1/partner-credentials/challenge</span> — credential challenge (live, proof-of-possession)</li>
+          <li><span className="text-white font-mono">POST /v1/partner-credentials/confirm</span> — credential confirm (live, proof-of-possession)</li>
+          <li><span className="text-white font-mono">POST /v1/partner-links/challenges</span> — issue link challenge (Perk Sphere SERVICE auth — DKO cannot call)</li>
+          <li><span className="text-white font-mono">POST /v1/partner-links/confirm</span> — confirm link (partner HMAC, activation-gated)</li>
+          <li><span className="text-white font-mono">POST /v1/partners/events</span> — activity events (partner HMAC, activation-gated)</li>
+          <li><span className="text-white font-mono">POST /partners/account-link/unlink</span> — unlink (Perk Sphere SERVICE auth — DKO cannot call)</li>
+          <li className="text-yellow-400">Blockers: link-initiation redirect URL not confirmed; server-side unlink requires Perk Sphere service auth. DKO does not impersonate service auth.</li>
         </ul>
       </div>
     </div>

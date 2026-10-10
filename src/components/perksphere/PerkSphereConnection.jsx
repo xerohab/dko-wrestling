@@ -10,34 +10,51 @@ export default function PerkSphereConnection() {
   const [showConsent, setShowConsent] = useState(false);
   const [msg, setMsg] = useState(null);
 
-  useEffect(() => {
-    base44.auth.me().then(async (u) => {
-      setUser(u);
-      try {
-        const res = await base44.entities.PerkSphereLink.filter(
-          { user_id: u.id },
-          { limit: 10, sort: "-created_date" }
-        );
-        const items = Array.isArray(res) ? res : (res.items || []);
-        setLink(items.find(i => i.status === "linked") || items.find(i => i.status === "pending") || null);
-      } catch (_e) {
-        // RLS may hide records if not yet linked — that's fine.
-      }
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  }, []);
-
-  const refresh = async () => {
-    if (!user) return;
+  const loadLink = async (u) => {
     try {
       const res = await base44.entities.PerkSphereLink.filter(
-        { user_id: user.id },
+        { user_id: u.id },
         { limit: 10, sort: "-created_date" }
       );
       const items = Array.isArray(res) ? res : (res.items || []);
       setLink(items.find(i => i.status === "linked") || items.find(i => i.status === "pending") || null);
-    } catch (_e) {}
+    } catch (_e) {
+      // RLS may hide records if not yet linked — that's fine.
+    }
   };
+
+  useEffect(() => {
+    base44.auth.me().then(async (u) => {
+      setUser(u);
+      await loadLink(u);
+      setLoading(false);
+
+      // Challenge handoff: Perk Sphere redirects back to DKO with ?challenge=...
+      // partnerLinkConfirm calls POST /v1/partner-links/confirm (partner HMAC).
+      const urlParams = new URLSearchParams(window.location.search);
+      const challenge = urlParams.get("challenge");
+      if (challenge) {
+        window.history.replaceState({}, "", window.location.pathname);
+        setBusy(true);
+        try {
+          const r = await base44.functions.invoke("partnerLinkConfirm", { challenge });
+          const data = r.data || {};
+          if (data.ok) {
+            setMsg({ type: "success", text: "Your Perk Sphere account is connected." });
+          } else if (data.code === "setup_required") {
+            setMsg({ type: "info", text: "Perk Sphere linking is not live yet." });
+          } else {
+            setMsg({ type: "error", text: data.message || "Linking confirmation failed." });
+          }
+        } catch (_e) {
+          setMsg({ type: "error", text: "Linking confirmation failed." });
+        } finally {
+          setBusy(false);
+          await loadLink(u);
+        }
+      }
+    }).catch(() => setLoading(false));
+  }, []);
 
   const handleConnect = async () => {
     setShowConsent(false);
@@ -52,6 +69,8 @@ export default function PerkSphereConnection() {
       }
       if (data.code === "setup_required") {
         setMsg({ type: "info", text: "Perk Sphere account linking is not live yet. The DKO Wrestling partner is still completing verification." });
+      } else if (data.code === "consent_url_unavailable") {
+        setMsg({ type: "info", text: "The Perk Sphere linking redirect is not configured yet. Linking will be available once the handoff is confirmed." });
       } else {
         setMsg({ type: "error", text: data.message || "Could not start linking." });
       }
@@ -59,7 +78,7 @@ export default function PerkSphereConnection() {
       setMsg({ type: "error", text: "Could not start linking." });
     } finally {
       setBusy(false);
-      refresh();
+      if (user) await loadLink(user);
     }
   };
 
@@ -72,7 +91,7 @@ export default function PerkSphereConnection() {
       const data = r.data || {};
       if (data.ok) {
         setLink(null);
-        setMsg({ type: "success", text: "Perk Sphere account disconnected." });
+        setMsg({ type: data.serverConfirmed === false ? "info" : "success", text: data.message || "Perk Sphere account disconnected." });
       } else if (data.code === "setup_required") {
         setMsg({ type: "info", text: "Perk Sphere unlinking is not live yet." });
       } else {
