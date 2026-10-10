@@ -39,6 +39,7 @@ import Communications from './pages/admin/Communications';
 import SubscriptionsManager from './pages/admin/SubscriptionsManager';
 import ArticleAnalytics from './pages/admin/ArticleAnalytics';
 import AdsManager from './pages/admin/AdsManager';
+import PerkSphereAdmin from './pages/admin/PerkSphereAdmin';
 
 function App() {
   return (
@@ -83,6 +84,7 @@ function App() {
                 <Route path="subscriptions" element={<SubscriptionsManager />} />
                 <Route path="analytics" element={<ArticleAnalytics />} />
                 <Route path="ads" element={<AdsManager />} />
+                <Route path="perksphere" element={<PerkSphereAdmin />} />
               </Route>
             </Route>
 

@@ -2,8 +2,6 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import {
   LIVE_ENABLED,
   getPartnerStatus,
-  perkSphereRequest,
-  PERKSPHERE_PARTNER_UUID,
 } from "../../shared/perkSphereClient.ts";
 
 // Unlinks the signed-in DKO user's Perk Sphere account. The account is NOT
@@ -37,21 +35,16 @@ export default async function(req) {
     }
 
     // --- Live flow ---
-    const res = await perkSphereRequest("POST", "/v1/partner-links/unlink", {
-      partner_uuid: PERKSPHERE_PARTNER_UUID,
-      partner_user_id: user.id,
-      perksphere_user_id: link.perksphere_user_id,
-    });
-    if (!res.ok) {
-      return Response.json({ ok: false, code: res.code, message: res.message }, { status: 502 });
-    }
-
-    // Linux confirmed the unlink.
+    // No server-side unlink endpoint was discoverable on the Linux API (all
+    // candidates returned 404). The user disconnects locally; server-side
+    // cleanup is completed by the user on Perk Sphere, or once Linux exposes an
+    // unlink endpoint. The local record is marked unlinked so the user is
+    // disconnected. serverConfirmed is false until an endpoint exists.
     await base44.entities.PerkSphereLink.update(link.id, {
       status: "unlinked",
       unlinked_at: new Date().toISOString(),
     });
-    return Response.json({ ok: true, unlinked: true });
+    return Response.json({ ok: true, unlinked: true, serverConfirmed: false });
   } catch (error) {
     return Response.json({ ok: false, code: "error", message: "Unlinking failed." }, { status: 500 });
   }

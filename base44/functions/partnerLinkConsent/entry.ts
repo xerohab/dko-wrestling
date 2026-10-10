@@ -2,9 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import {
   LIVE_ENABLED,
   getPartnerStatus,
-  perkSphereRequest,
-  PERKSPHERE_PARTNER_UUID,
-  PERKSPHERE_SITE_URL,
+  buildConsentUrl,
 } from "../../shared/perkSphereClient.ts";
 
 // Starts the Perk Sphere account-linking flow for the signed-in DKO user.
@@ -49,20 +47,11 @@ export default async function(req) {
       challenge_id: challengeId,
     });
 
-    // 3. Request a linking challenge from Perk Sphere (partner-HMAC signed).
-    const res = await perkSphereRequest("POST", "/v1/partner-links/challenges", {
-      partner_uuid: PERKSPHERE_PARTNER_UUID,
-      partner_user_id: user.id,
-      partner_user_email: user.email,
-      return_url: `${PERKSPHERE_SITE_URL}/profile`,
-      challenge_id: challengeId,
-    });
-
-    if (!res.ok) {
-      return Response.json({ ok: false, code: res.code, message: res.message }, { status: 502 });
-    }
-
-    const consentUrl = res.data?.consent_url || res.data?.redirect_url;
+    // 3. No server-side initiation endpoint exists on the Linux API. The user
+    // authorises on Perk Sphere's side, returns here, and partnerLinkConfirm
+    // calls POST /v1/partner-links/confirm (partner-HMAC signed) for Linux
+    // confirmation. The account is NOT linked until Linux confirms.
+    const consentUrl = buildConsentUrl(challengeId);
     return Response.json({ ok: true, challengeId, consentUrl });
   } catch (error) {
     return Response.json({ ok: false, code: "error", message: "Linking could not start." }, { status: 500 });

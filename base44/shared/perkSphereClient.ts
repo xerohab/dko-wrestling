@@ -14,6 +14,18 @@ export const PERKSPHERE_API_BASE = "https://api.perksphere.org";
 export const PERKSPHERE_PARTNER_UUID = "0d5996bf-471c-49c0-a4df-39af4cfeddb7";
 export const PERKSPHERE_PARTNER_NAME = "DKO Wrestling";
 export const PERKSPHERE_SITE_URL = "https://dkowrestling.co.uk";
+export const PERKSPHERE_PARTNER_DOMAIN = "dkowrestling.co.uk";
+
+// User-facing Perk Sphere linking URL (constructed; the exact path needs Perk
+// Sphere confirmation). Used only when LIVE_ENABLED is true.
+export function buildConsentUrl(challengeId) {
+  const params = new URLSearchParams({
+    partner: PERKSPHERE_PARTNER_DOMAIN,
+    challenge: challengeId,
+    return_url: `${PERKSPHERE_SITE_URL}/profile`,
+  });
+  return `https://perksphere.org/account/partners/link?${params.toString()}`;
+}
 
 // Expected Linux-issued partner key ID for THIS project (DKO Wrestling).
 export const EXPECTED_KEY_ID = "psp_ujlMGJtS1IV4U2llbKgWtaR-";

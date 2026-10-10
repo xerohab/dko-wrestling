@@ -6,15 +6,8 @@ import {
   PERKSPHERE_PARTNER_UUID,
 } from "../../shared/perkSphereClient.ts";
 
-// Provisional permitted event types — MUST be confirmed against the actual Linux
-// partner configuration before live submission is enabled.
-const ALLOWED_EVENT_TYPES = [
-  "account_registered",
-  "video_watch_progress",
-  "livestream_watch_progress",
-  "livestream_ended",
-  "purchase_completed",
-];
+// Production event types permitted by the Linux partner configuration.
+const ALLOWED_EVENT_TYPES = ["STREAM_VIEW_PROGRESS", "STREAM_ENDED"];
 
 // Submits a reward-eligible activity event to Perk Sphere for the signed-in,
 // linked DKO user. Enforces deduplication (stable event_id), user-scoping, and
@@ -41,6 +34,17 @@ export default async function(req) {
       return Response.json({ ok: false, code: "bad_request", message: "A stable event_id is required for deduplication." }, { status: 400 });
     }
 
+    // Deduplication (idempotency): reject a replayed/duplicate event_id for this
+    // user before any submission. A duplicate can never produce duplicate rewards.
+    const dupRes = await base44.entities.PerkSphereEvent.filter(
+      { user_id: user.id, event_id: eventId },
+      { limit: 1 }
+    );
+    const dupItems = Array.isArray(dupRes) ? dupRes : (dupRes.items || []);
+    if (dupItems[0]) {
+      return Response.json({ ok: false, code: "duplicate", message: "This event has already been submitted." }, { status: 409 });
+    }
+
     // Must have a Linux-confirmed link.
     const linkRes = await base44.entities.PerkSphereLink.filter(
       { user_id: user.id, status: "linked" },
@@ -52,31 +56,18 @@ export default async function(req) {
       return Response.json({ ok: false, code: "not_linked", message: "Connect your Perk Sphere account first." }, { status: 409 });
     }
 
-    // Deduplication: reject a replayed/duplicate event_id for this user.
-    const dupRes = await base44.entities.PerkSphereEvent.filter(
-      { user_id: user.id, event_id: eventId },
-      { limit: 1 }
-    );
-    const dupItems = Array.isArray(dupRes) ? dupRes : (dupRes.items || []);
-    if (dupItems[0]) {
-      return Response.json({ ok: false, code: "duplicate", message: "This event has already been submitted." }, { status: 409 });
-    }
-
-    // Reward-bearing submission is disabled until verified. Do not record a
-    // pending event (so a later, live submission is not blocked by dedup).
+    // Submission is disabled until the partner is activated. Do not record a
+    // pending event (so a later live submission is not blocked by dedup).
     if (!LIVE_ENABLED) {
       return Response.json({
         ok: false,
         code: "setup_required",
         partnerStatus: getPartnerStatus(),
-        message: "Reward-bearing event submission is disabled until the Perk Sphere partner is verified and activated.",
+        message: "Event submission is disabled until the Perk Sphere partner is activated.",
       }, { status: 503 });
     }
 
     // --- Live flow ---
-    // YouTube sources never earn points or XP, regardless of watch duration.
-    const isYoutube = source === "youtube" || body.video_source === "youtube";
-
     const created = await base44.entities.PerkSphereEvent.create({
       user_id: user.id,
       user_email: user.email,
@@ -86,7 +77,11 @@ export default async function(req) {
       status: "pending",
     });
 
-    const res = await perkSphereRequest("POST", "/v1/partner/events", {
+    // Submit verified activity EVIDENCE only. DKO never calculates or awards
+    // Perk Sphere Points/XP — Linux is the sole reward authority. YouTube
+    // sources are flagged so Linux can apply its zero-reward rule.
+    const isYoutube = source === "youtube" || body.video_source === "youtube";
+    const res = await perkSphereRequest("POST", "/v1/partners/events", {
       partner_uuid: PERKSPHERE_PARTNER_UUID,
       partner_user_id: user.id,
       perksphere_user_id: link.perksphere_user_id,
@@ -94,10 +89,9 @@ export default async function(req) {
         event_id: eventId,
         event_type: eventType,
         source,
-        points: isYoutube ? 0 : (body.points ?? 0),
-        xp: isYoutube ? 0 : (body.xp ?? 0),
+        youtube: isYoutube,
         occurred_at: new Date().toISOString(),
-        payload: body.payload || {},
+        evidence: body.evidence || body.payload || {},
       },
     });
 
