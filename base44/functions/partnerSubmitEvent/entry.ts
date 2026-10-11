@@ -5,48 +5,9 @@ import {
   perkSphereRequest,
 } from "../../shared/perkSphereClient.ts";
 
-// Exact lowercase Linux event types the DKO Wrestling partner is authorised to
-// submit. Unsupported event types are rejected.
-const ALLOWED_EVENT_TYPES = ["stream_watch_progress", "stream_ended", "registration_completed"];
-
-// Validates evidence against the strict per-type Linux contract.
-function validateEvidence(eventType, ev) {
-  if (!ev || typeof ev !== "object" || Array.isArray(ev)) {
-    return "Evidence object is required.";
-  }
-  if (eventType === "stream_watch_progress") {
-    if (typeof ev.stream_id !== "string" || !ev.stream_id) return "evidence.stream_id is required.";
-    if (typeof ev.viewer_session_id !== "string" || !ev.viewer_session_id) return "evidence.viewer_session_id is required.";
-    const s = Number(ev.eligible_seconds);
-    if (!Number.isInteger(s) || s < 0 || s > 86400) return "evidence.eligible_seconds must be an integer from 0 to 86400.";
-    return null;
-  }
-  if (eventType === "stream_ended") {
-    if (typeof ev.stream_id !== "string" || !ev.stream_id) return "evidence.stream_id is required.";
-    if (typeof ev.ended_at !== "string" || !ev.ended_at) return "evidence.ended_at (UTC ISO-8601) is required.";
-    return null;
-  }
-  // registration_completed
-  if (typeof ev.registration_reference !== "string" || !ev.registration_reference) {
-    return "evidence.registration_reference is required.";
-  }
-  return null;
-}
-
-// Builds evidence with EXACTLY the permitted fields for the event type.
-function buildEvidence(eventType, ev) {
-  if (eventType === "stream_watch_progress") {
-    return {
-      stream_id: ev.stream_id,
-      viewer_session_id: ev.viewer_session_id,
-      eligible_seconds: Number(ev.eligible_seconds),
-    };
-  }
-  if (eventType === "stream_ended") {
-    return { stream_id: ev.stream_id, ended_at: ev.ended_at };
-  }
-  return { registration_reference: ev.registration_reference };
-}
+import { ALLOWED_TYPES, validateEvidence } from "../../shared/partnerEventContract.ts";
+const ALLOWED_EVENT_TYPES = [...ALLOWED_TYPES];
+function buildEvidence(_eventType, evidence) { return { ...evidence }; }
 
 // Submits a reward-eligible activity event to Perk Sphere for the signed-in,
 // linked DKO user. Enforces idempotency (stable partner_event_id), user-scoping,
