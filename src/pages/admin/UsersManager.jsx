@@ -5,7 +5,7 @@ import { UserPlus, Edit2, Loader2, Mail, ChevronDown, Crown, X } from "lucide-re
 import { Link } from "react-router-dom";
 
 export default function UsersManager() {
-  const { user } = /** @type {{user: any}} */ (useOutletContext()) || { user: null };
+  const { user } = /** @type {{user: {id: string, email?: string, role?: string, display_name?: string, full_name?: string}}} */ (useOutletContext());
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);

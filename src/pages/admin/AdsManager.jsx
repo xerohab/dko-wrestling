@@ -20,7 +20,7 @@ const AD_TYPES = [
 const EMPTY_FORM = { name: "", slot: "mid", type: "image", image_url: "", link_url: "", headline: "", body_text: "", custom_html: "", adsense_publisher_id: "", is_active: true };
 
 export default function AdsManager() {
-  const { user } = /** @type {{user: any}} */ (useOutletContext()) || { user: null };
+  const { user } = /** @type {{user: {id: string, email?: string, role?: string, display_name?: string, full_name?: string}}} */ (useOutletContext());
   const navigate = useNavigate();
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);

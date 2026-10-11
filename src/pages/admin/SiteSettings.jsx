@@ -30,7 +30,7 @@ const AD_SLOTS = [
   { key: "ad_google_publisher_id", label: "Google AdSense Publisher ID", description: "e.g. ca-pub-1234567890. When set, auto-fills all slots with Google ads.", placeholder: "ca-pub-XXXXXXXXXX" },
 ];
 
-function SectionCard({ icon: Icon, iconColor, title, subtitle, children }) {
+function SectionCard({ icon: Icon, iconColor, title, subtitle = undefined, children }) {
   return (
     <div className="bg-card border border-border rounded-xl p-5 md:p-6 mb-5">
       <div className="flex items-center gap-3 mb-5">
@@ -68,7 +68,7 @@ function SecretField({ label, fieldKey, value, onChange }) {
 }
 
 export default function SiteSettings() {
-  const { user } = /** @type {{user: any}} */ (useOutletContext()) || { user: null };
+  const { user } = /** @type {{user: {id: string, email?: string, role?: string, display_name?: string, full_name?: string}}} */ (useOutletContext());
   const navigate = useNavigate();
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);

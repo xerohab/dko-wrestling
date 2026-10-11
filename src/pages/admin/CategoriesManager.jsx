@@ -5,7 +5,7 @@ import { Plus, Trash2, Edit2, Check, X, Loader2, ChevronRight } from "lucide-rea
 import CategoryColorPicker, { PRESET_COLORS } from "@/components/categories/CategoryColorPicker.jsx";
 
 export default function CategoriesManager() {
-  const { user } = /** @type {{user: any}} */ (useOutletContext()) || { user: null };
+  const { user } = /** @type {{user: {id: string, email?: string, role?: string, display_name?: string, full_name?: string}}} */ (useOutletContext());
   const navigate = useNavigate();
 
   const [categories, setCategories] = useState([]);

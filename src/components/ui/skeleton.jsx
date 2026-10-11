@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils"
 
 function Skeleton({
-  className = "",
+  className = undefined,
   ...props
 }) {
   return (

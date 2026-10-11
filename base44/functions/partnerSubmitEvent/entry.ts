@@ -61,9 +61,8 @@ export default async function(req) {
       return Response.json({ ok: false, code: "unauthorized", message: "Sign in required." }, { status: 401 });
     }
 
-    if (user.role !== 'admin') {
-      return Response.json({ ok: false, code: 'forbidden', message: 'Administrative event submission requires an administrator.' }, { status: 403 });
-    }
+    // Arbitrary browser evidence must never be signed as trusted partner activity.
+    if (user.role !== "admin") return Response.json({ ok: false, code: "VERIFIED_WORKFLOW_REQUIRED", error: "Activity must be submitted by a verified server workflow." }, { status: 403 });
     let body = {};
     try { body = await req.json(); } catch (_e) {}
     const eventType = body.event_type;
@@ -86,17 +85,17 @@ export default async function(req) {
     // user before any submission. A duplicate can never produce duplicate rewards.
     const dupRes = await base44.entities.PerkSphereEvent.filter(
       { user_id: user.id, event_id: partnerEventId },
-      "-created_date", 1
+      undefined, 1
     );
     const dupItems = Array.isArray(dupRes) ? dupRes : (dupRes.items || []);
-    if (dupItems[0]) {
+    if (dupItems[0]?.status === "submitted") {
       return Response.json({ ok: false, code: "duplicate", message: "This event has already been submitted." }, { status: 409 });
     }
 
     // Must have a Linux-confirmed link.
     const linkRes = await base44.entities.PerkSphereLink.filter(
       { user_id: user.id, status: "linked" },
-      "-created_date", 1
+      undefined, 1
     );
     const linkItems = Array.isArray(linkRes) ? linkRes : (linkRes.items || []);
     if (!linkItems[0]) {
@@ -118,7 +117,7 @@ export default async function(req) {
     const occurredAt = new Date().toISOString(); // UTC ISO-8601, within the 24h window
     const cleanEvidence = buildEvidence(eventType, evidence);
 
-    const created = await base44.entities.PerkSphereEvent.create({
+    const created = dupItems[0] || await base44.asServiceRole.entities.PerkSphereEvent.create({
       user_id: user.id,
       user_email: user.email,
       event_id: partnerEventId,
@@ -144,11 +143,11 @@ export default async function(req) {
     const res = await perkSphereRequest("POST", "/v1/partners/events", payload);
 
     if (!res.ok) {
-      await base44.entities.PerkSphereEvent.update(created.id, { status: "rejected", result: res.code });
+      await base44.asServiceRole.entities.PerkSphereEvent.update(created.id, { status: "rejected", result: res.code });
       return Response.json({ ok: false, code: res.code, message: res.message }, { status: 502 });
     }
 
-    await base44.entities.PerkSphereEvent.update(created.id, {
+    await base44.asServiceRole.entities.PerkSphereEvent.update(created.id, {
       status: "submitted",
       submitted_at: new Date().toISOString(),
       result: "ok",

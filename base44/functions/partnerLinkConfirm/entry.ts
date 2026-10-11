@@ -205,7 +205,7 @@ export default async function (req) {
     // non-secret Linux link UUID in that field for now.
     // This assumes challenge_id accepts a string.
     try {
-      await base44.entities.PerkSphereLink.create({
+      await base44.asServiceRole.entities.PerkSphereLink.create({
         user_id: user.id,
         user_email: user.email || null,
         status: "linked",

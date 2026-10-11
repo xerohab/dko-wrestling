@@ -5,7 +5,7 @@ import { MessageCircle, Trash2, Check, X, Loader2, Search } from "lucide-react";
 import { format } from "date-fns";
 
 export default function CommentsManager() {
-  const { user } = /** @type {{user: any}} */ (useOutletContext()) || { user: null };
+  const { user } = /** @type {{user: {id: string, email?: string, role?: string, display_name?: string, full_name?: string}}} */ (useOutletContext());
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");

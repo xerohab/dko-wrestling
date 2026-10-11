@@ -55,7 +55,7 @@ function NavDropdown({ cat, subs, location }) {
   );
 }
 
-function SubDropdownItem({ sub, allCats = [], location, onClose, grandchildren = [] }) {
+function SubDropdownItem({ sub, allCats = undefined, location, onClose, grandchildren = [] }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const isActive = location.pathname.startsWith(`/category/${sub.slug}`);

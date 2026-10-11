@@ -6,7 +6,7 @@ import { TrendingUp, Eye, MessageCircle, Loader2 } from "lucide-react";
 import { format, subDays } from "date-fns";
 
 export default function ArticleAnalytics() {
-  const { user } = /** @type {{user: any}} */ (useOutletContext()) || { user: null };
+  const { user } = /** @type {{user: {id: string, email?: string, role?: string, display_name?: string, full_name?: string}}} */ (useOutletContext());
   const [loading, setLoading] = useState(true);
   const [views, setViews] = useState([]);
   const [comments, setComments] = useState([]);

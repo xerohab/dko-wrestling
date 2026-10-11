@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Crown, Plus, Edit2, Trash2, Check, X, Loader2, Star, Lock, EyeOff, UserPlus, Link2, Copy } from "lucide-react";
 
 export default function SubscriptionsManager() {
-  const { user } = /** @type {{user: any}} */ (useOutletContext()) || { user: null };
+  const { user } = /** @type {{user: {id: string, email?: string, role?: string, display_name?: string, full_name?: string}}} */ (useOutletContext());
   const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [subscribers, setSubscribers] = useState([]);
@@ -192,7 +192,7 @@ export default function SubscriptionsManager() {
 
   const copyLinkUrl = (code) => {
     const url = `${window.location.origin}/join/${code}`;
-    (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject(new Error("Clipboard unavailable"))).then(() => {
+    navigator.clipboard?.writeText(url).then(() => {
       setCopiedCode(code);
       setTimeout(() => setCopiedCode(null), 2000);
     }).catch(() => {

@@ -8,7 +8,7 @@ import { Save, Send, ArrowLeft, Image as ImageIcon, X, Loader2, Twitter, Tag, Se
 export default function ArticleEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = /** @type {{user: any}} */ (useOutletContext()) || { user: null };
+  const { user } = /** @type {{user: {id: string, email?: string, role?: string, display_name?: string, full_name?: string}}} */ (useOutletContext());
   const isNew = !id || id === "new";
 
   const [allCategories, setAllCategories] = useState([]);
@@ -67,8 +67,7 @@ export default function ArticleEditor() {
             published_date: a.published_date || "",
             seo_title: a.seo_title || "",
             seo_description: a.seo_description || "",
-            author_name: a.author_name || "",
-            author_email: a.author_email || "",
+            author_name: a.author_name || "", author_email: a.author_email || "",
             is_paywalled: a.is_paywalled || false,
           });
         }

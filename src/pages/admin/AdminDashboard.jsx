@@ -20,7 +20,7 @@ function StatCard({ icon: IconComp, label, value, color = "text-primary" }) {
 }
 
 export default function AdminDashboard() {
-  const { user } = /** @type {{user: any}} */ (useOutletContext()) || { user: null };
+  const { user } = /** @type {{user: {id: string, email?: string, role?: string, display_name?: string, full_name?: string}}} */ (useOutletContext());
   const [stats, setStats] = useState({ total: 0, published: 0, drafts: 0, images: 0 });
   const [recent, setRecent] = useState([]);
 

@@ -21,7 +21,7 @@ export default async function(req) {
 
     const foundRes = await base44.entities.PerkSphereLink.filter(
       { user_id: user.id, status: "linked" },
-      { limit: 10 }
+      undefined, 10
     );
     const foundItems = Array.isArray(foundRes) ? foundRes : (foundRes.items || []);
     const link = foundItems[0];
@@ -43,16 +43,12 @@ export default async function(req) {
     // service authentication (POST /partners/account-link/unlink), which the DKO
     // partner cannot impersonate. The account is NOT fully disconnected until
     // Linux confirms revocation — serverConfirmed stays false.
-    await base44.entities.PerkSphereLink.update(link.id, {
-      status: "unlinked",
-      unlinked_at: new Date().toISOString(),
-    });
     return Response.json({
-      ok: true,
-      unlinked: true,
+      ok: false,
+      code: "REVOCATION_REQUIRED",
       serverConfirmed: false,
-      message: "Disconnected locally. Server-side revocation is mediated by Perk Sphere and is not confirmed until Linux confirms.",
-    });
+      message: "Disconnect this partner from your Perk Sphere account at https://perksphere.org. The existing connection remains linked until Perk Sphere confirms revocation."
+    }, { status: 409 });
   } catch (error) {
     return Response.json({ ok: false, code: "error", message: "Unlinking failed." }, { status: 500 });
   }

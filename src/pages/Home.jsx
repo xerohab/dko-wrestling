@@ -18,7 +18,7 @@ export default function Home() {
     document.title = "DKO Wrestling | Latest News & Updates";
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) metaDesc.setAttribute('content', "Stay updated with the latest wrestling news, articles, and stories from DKO Wrestling.");
-    
+
     base44.entities.Category.list("sort_order", 200).then(setCategories).catch(() => {});
     loadArticles(1, "", "");
   }, []);
