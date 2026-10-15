@@ -11,6 +11,35 @@ import DkoClubPromo from "@/components/articles/DkoClubPromo";
 import { format } from "date-fns";
 import { Loader2, User, Calendar, Eye, MessageCircle, Bookmark, BookmarkCheck, ArrowLeft } from "lucide-react";
 
+// Some article bodies (created via the rich editor) ended up with paragraph/text
+// content trapped INSIDE a responsive-video wrapper div — the one using
+// `padding-bottom:56.25%; height:0; overflow:hidden`. That padding creates a
+// ~500px empty box below the text (the "massive gap" before a YouTube embed).
+// This normalizer lifts any non-iframe content out of those wrappers so text
+// renders above the video and the wrapper only ever holds the iframe.
+function normalizeArticleBody(html) {
+  if (!html || typeof window === "undefined" || !window.DOMParser) return html;
+  try {
+    const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
+    doc.querySelectorAll('div[style*="padding-bottom:56.25%"]').forEach(div => {
+      const style = div.getAttribute("style") || "";
+      if (!style.includes("height:0") && !style.includes("height: 0")) return;
+      const kids = Array.from(div.childNodes);
+      const hasIframe = kids.some(n => n.nodeType === 1 && n.tagName === "IFRAME");
+      kids.forEach(n => {
+        // Skip the iframe itself; skip pure whitespace text nodes.
+        if (n.nodeType === 1 && n.tagName === "IFRAME") return;
+        if (n.nodeType === 3 && !n.textContent.trim()) return;
+        div.parentNode.insertBefore(n, div);
+      });
+      if (!hasIframe) div.remove();
+    });
+    return doc.body.innerHTML;
+  } catch (_e) {
+    return html;
+  }
+}
+
 export default function ArticlePage() {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -293,7 +322,7 @@ export default function ArticlePage() {
                 [&_iframe]:w-full [&_iframe]:rounded-xl
                 [&_strong]:text-white [&_strong]:font-semibold
               "
-              dangerouslySetInnerHTML={{ __html: article.body }}
+              dangerouslySetInnerHTML={{ __html: normalizeArticleBody(article.body) }}
             />
 
             {/* Mid Ad */}
