@@ -56,7 +56,7 @@ test('duplicate transport event is accepted but other provider failures stay pen
  assert.equal((await emitter({fetchImpl:async()=>Response.json({ok:false},{status:503})})).reason,'registration_event_pending');
 });
 test('existing DKO link UUID in challenge_id is valid registration evidence',async()=>{
- const result=await emitter({links:[{status:'linked',challenge_id:uuid}]});assert.equal(result.accepted,true);
+ const result=await emitter({links:[{status:'linked',challenge_id:uuid}],fetchImpl:async()=>Response.json({ok:true})});assert.equal(result.accepted,true);
  const invalid=await emitter({links:[{status:'linked',challenge_id:'not-a-confirmed-uuid'}]});assert.equal(invalid.accepted,false);
 });
 async function linkHandler(client,emit){
