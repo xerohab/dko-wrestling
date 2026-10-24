@@ -55,30 +55,31 @@ test('duplicate transport event is accepted but other provider failures stay pen
  assert.deepEqual(await emitter({fetchImpl:async()=>Response.json({ok:false,error:{code:'duplicate_partner_event'}},{status:409})}),{accepted:true,duplicate:true});
  assert.equal((await emitter({fetchImpl:async()=>Response.json({ok:false},{status:503})})).reason,'registration_event_pending');
 });
+test('existing DKO link UUID in challenge_id is valid registration evidence',async()=>{
+ const result=await emitter({links:[{status:'linked',challenge_id:uuid}]});assert.equal(result.accepted,true);
+ const invalid=await emitter({links:[{status:'linked',challenge_id:'not-a-confirmed-uuid'}]});assert.equal(invalid.accepted,false);
+});
 async function linkHandler(client,emit){
  globalThis.__registrationTestClient=()=>client;
- globalThis.__registrationTestSecrets={get:name=>config[name]};
  globalThis.__registrationTestEmitter=emit;
- let source=await readFile(new URL('../base44/functions/perkSphereLinkConfirm/entry.ts',import.meta.url),'utf8');
- source=source.replace(/^import .*;\n/gm,'');
- source='const createClientFromRequest=globalThis.__registrationTestClient;const secrets=globalThis.__registrationTestSecrets;const emitCurrentUserRegistration=globalThis.__registrationTestEmitter;\n'+source;
+ globalThis.__registrationTestSecret=name=>config[name];
+ globalThis.__registrationTestRequest=async(method,path,body)=>{assert.equal(method,'POST');assert.equal(path,'/v1/partner-links/confirm');assert.equal(body.partner_account_reference,user.id);return {ok:true,data:{ok:true,link_uuid:uuid}};};
+ let source=await readFile(new URL('../base44/functions/partnerLinkConfirm/entry.ts',import.meta.url),'utf8');
+ source=source.replace(/^import[\s\S]*?;\s*/gm,'');
+ source='const createClientFromRequest=globalThis.__registrationTestClient;const emitCurrentUserRegistration=globalThis.__registrationTestEmitter;const registrationSecret=globalThis.__registrationTestSecret;const LIVE_ENABLED=true;const getPartnerStatus=()=>({});const perkSphereRequest=globalThis.__registrationTestRequest;\n'+source;
  const {code}=await transform(source,{loader:'ts',format:'esm'});
  return (await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64')+'#'+Math.random())).default;
 }
-test('existing partner link remains successful when optional registration notification fails',async()=>{
- const client={auth:{me:async()=>user},asServiceRole:{entities:{PerkSphereLink:{filter:async()=>[{status:'linked'}]}}}};
+test('existing DKO partner link remains successful when optional registration notification fails',async()=>{
+ const client={auth:{me:async()=>user},entities:{PerkSphereLink:{filter:async()=>[{status:'linked'}]}},asServiceRole:{}};
  const handler=await linkHandler(client,async()=>{throw Error('optional source unavailable');});
- const result=await handler(new Request('https://app.base44.com/link',{method:'POST',body:JSON.stringify({challenge:'a'.repeat(43)})}));
- assert.equal(result.status,200);assert.deepEqual(await result.json(),{ok:true,linked:true,already:true});
+ const result=await handler(new Request('https://test.invalid/link',{method:'POST',body:JSON.stringify({challenge:'a'.repeat(43)})}));
+ assert.equal(result.status,200);const body=await result.json();assert.equal(body.linked,true);assert.equal(body.already,true);
 });
-test('fresh signed link remains successful when optional registration notification fails',async()=>{
+test('fresh DKO link retains its confirmed UUID when optional registration notification fails',async()=>{
  const calls=[];
- const client={auth:{me:async()=>user},asServiceRole:{entities:{PerkSphereLink:{filter:async()=>[],create:async record=>calls.push(record)}}}};
+ const client={auth:{me:async()=>user},entities:{PerkSphereLink:{filter:async()=>[]}},asServiceRole:{entities:{PerkSphereLink:{create:async record=>calls.push(record)}}}};
  const handler=await linkHandler(client,async()=>{throw Error('optional source unavailable');});
- const originalFetch=globalThis.fetch;
- try{
-  globalThis.fetch=async()=>Response.json({ok:true,link_uuid:uuid});
-  const result=await handler(new Request('https://app.base44.com/link',{method:'POST',body:JSON.stringify({challenge:'a'.repeat(43)})}));
-  assert.equal(result.status,200);assert.deepEqual(await result.json(),{ok:true,linked:true});assert.equal(calls[0].linux_link_uuid,uuid);
- }finally{globalThis.fetch=originalFetch;}
+ const result=await handler(new Request('https://test.invalid/link',{method:'POST',body:JSON.stringify({challenge:'a'.repeat(43)})}));
+ assert.equal(result.status,200);assert.equal((await result.json()).link_uuid,uuid);assert.equal(calls[0].challenge_id,uuid);assert.equal('challenge' in calls[0],false);
 });
