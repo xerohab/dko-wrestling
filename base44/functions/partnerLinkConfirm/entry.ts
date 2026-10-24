@@ -1,5 +1,7 @@
 
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.52";
+import {emitCurrentUserRegistration} from "../../shared/partnerRegistration.ts";
+import {registrationSecret} from "../../shared/partnerRegistrationConfig.ts";
 
 import {
   LIVE_ENABLED,
@@ -123,6 +125,7 @@ export default async function (req) {
     const existingLinks = getItems(existingResult);
 
     if (existingLinks.length > 0) {
+      await emitCurrentUserRegistration({admin:base44.asServiceRole,userReference:user.id,getSecret:registrationSecret}).catch(()=>{});
       return jsonResponse({
         ok: true,
         linked: true,
@@ -226,6 +229,9 @@ export default async function (req) {
     }
 
     // --------------------------------------------------
+    // 7. Best-effort registration evidence; never changes a successful link.
+    await emitCurrentUserRegistration({admin:base44.asServiceRole,userReference:user.id,getSecret:registrationSecret}).catch(()=>{});
+
     // 7. Return successful confirmation
     // --------------------------------------------------
 
